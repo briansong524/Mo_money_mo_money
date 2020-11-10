@@ -109,22 +109,26 @@ class RealTimeTickApp(EWrapper, EClient):
 					 low, close, volume) \
 					 VALUES ({csv})'.format(dbname = self.creds['dbname'],
 										  csv = csvOutputs)
-			self.run_query(query)
+			run_query(query)
 
 	def mysqlConfig(self, creds):
 		# load in MySQL credentials
 		self.creds = creds
 		self.outFormat = 'mysql'
 
-	def run_query(self, query):
-		conn, cursor = mysql_conn(self.creds)
+def run_query(creds, query, selectBool = False):
+	conn, cursor = mysql_conn(creds)
 
-		try:
-			cursor.execute(query)
-		except Exception as e:
-			print('Error in running query: ' + str(e))
-		finally:
-			db_conn_close(conn, cursor)
+	try:
+		cursor.execute(query)
+		if selectBool:
+			rows = cursor.fetchall()
+	except Exception as e:
+		print('Error in running query: ' + str(e))
+	finally:
+		db_conn_close(conn, cursor)
+		if selectBool:
+			return rows
 
 
 def mysql_conn(db_conn_info):
