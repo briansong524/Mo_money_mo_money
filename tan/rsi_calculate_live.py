@@ -18,7 +18,7 @@ def main():
 
 		query = 'SELECT * FROM {dbname}.bar_15min ORDER BY id DESC LIMIT 50'.format(dbname=conn_cred['dbname'])
 		rows = run_query(conn_cred, query)
-		df = pd.DataFrame(rows, columns = ['id','symbol','datetime','open','high','low','close','volume'])
+		df = pd.DataFrame(rows, columns = ['symbol','datetime','open','high','low','close','volume'])
 
 		for symbol in ['AAPL','AMZN','GOOGL','TSLA']:
 			try:
@@ -27,9 +27,18 @@ def main():
 				if first_rsi:
 					rsi, prevU, prevD = rsi(vals) 
 				else:
-					if last_datetime == df['datetime'].iloc[0].values
+					if last_datetime == df['datetime'].iloc[0].values:
+						rsi, _, _ = rsi(vals, prevU, prevD) 
+					else:
+						rsi, prevU, prevD = rsi(vals, prevU, prevD)
 					
 				last_datetime = df['datetime'].iloc[0].values
+
+				# send slack message based on rsi
+				if (rsi <= 20) | (rsi >= 80):
+					text = symbol + ' hit RSI ' + str(rsi)
+					requests.post(slack_hook, json = myobj)
+
 			except:
 				myobj = {"text":'something happened with ' + str(symbol)}
 				requests.post(slack_hook, json = myobj)
