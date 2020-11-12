@@ -60,7 +60,7 @@ def main(FLAGS):
 					if first_rsi:
 						rsi_, prevU, prevD = rsi(vals) 
 						first_rsi = False
-						print('first rsi calculated: ' + str(rsi_))
+						print('first rsi calculated for ' + str(symbol) + ': ' + str(rsi_))
 					else:
 						if last_datetime == df['datetime'].iloc[0].values:
 							rsi_, _, _ = rsi(vals, prevU, prevD) 
@@ -69,7 +69,7 @@ def main(FLAGS):
 							print('rsi @ ' + str(last_datetime) + ' = ' + str(rsi_))
 							rsi_, prevU, prevD = rsi(vals, prevU, prevD)
 						
-					last_datetime = df['datetime'].iloc[0].values
+					last_datetime = df['datetime'].iloc[0]
 
 					# send slack message based on rsi
 					if (rsi_ <= 20) | (rsi_ >= 80):
