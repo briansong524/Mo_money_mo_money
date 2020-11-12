@@ -55,8 +55,8 @@ def main(FLAGS):
 			try:
 				df_part = df[df['symbol'] == symbol].copy()
 				if df_part.shape[0] != 0:
-					vals = (df_part['close'] - df_part['open']).values
-					print(vals)
+					vals = (df_part['close'] - df_part['open']).astype(float).values
+					# print(vals)
 					if first_rsi:
 						rsi_, prevU, prevD = rsi(vals) 
 						first_rsi = False
