@@ -21,43 +21,43 @@ def basicContract(symbol, secType = 'STK', exchange = 'SMART',
 	return contract
 
 
-def rsi(prices, n = 14, avg_method = 'simple'):
-	# given a list of sequential price changes (prices), use len(prices) 
-	# changes to calculate rsi.
-	#
-	# prices = numpy array
-	# n = int
-	# avg_method = str
+# def rsi(prices, n = 14, avg_method = 'simple'):
+# 	# given a list of sequential price changes (prices), use len(prices) 
+# 	# changes to calculate rsi.
+# 	#
+# 	# prices = numpy array
+# 	# n = int
+# 	# avg_method = str
 	
-	assert len(prices) > n, 'list of price delta less than rsi period'
+# 	assert len(prices) > n, 'list of price delta less than rsi period'
 	
-	rsi_list = [np.nan] * n
+# 	rsi_list = [np.nan] * n
 	
-	n_prices = len(prices)
-	if avg_method == 'simple':
-		alpha = 1
-	elif avg_method == 'exponential':
-		alpha = 2 / (n+1)
-	elif avg_method == 'wilder':
-		alpha = 1 / n
-	for i in range(n, n_prices):
-		vals = prices[(i-n):i]
-		U = np.sum(vals * (vals > 0).astype(int)) / n_prices
-		D = -1 * np.sum(vals * (vals < 0).astype(int)) / n_prices
-		if i == n:
-			avgU = U
-			avgD = D
-		else:
-			U = np.sum(vals * (vals > 0).astype(int)) / n_prices
-			D = -1 * np.sum(vals * (vals < 0).astype(int)) / n_prices
-			avgU = alpha * U + (1 - alpha) * prevU
-			avgD = alpha * D + (1 - alpha) * prevD
-		prevU = avgU
-		prevD = avgD
-		rs = avgU / avgD
-		rsi = 100.0 - 100.0 / (1 + rs)
-		rsi_list.append(rsi)
-	return rsi_list
+# 	n_prices = len(prices)
+# 	if avg_method == 'simple':
+# 		alpha = 1
+# 	elif avg_method == 'exponential':
+# 		alpha = 2 / (n+1)
+# 	elif avg_method == 'wilder':
+# 		alpha = 1 / n
+# 	for i in range(n, n_prices):
+# 		vals = prices[(i-n):i]
+# 		U = np.sum(vals * (vals > 0).astype(int)) / n_prices
+# 		D = -1 * np.sum(vals * (vals < 0).astype(int)) / n_prices
+# 		if i == n:
+# 			avgU = U
+# 			avgD = D
+# 		else:
+# 			U = np.sum(vals * (vals > 0).astype(int)) / n_prices
+# 			D = -1 * np.sum(vals * (vals < 0).astype(int)) / n_prices
+# 			avgU = alpha * U + (1 - alpha) * prevU
+# 			avgD = alpha * D + (1 - alpha) * prevD
+# 		prevU = avgU
+# 		prevD = avgD
+# 		rs = avgU / avgD
+# 		rsi = 100.0 - 100.0 / (1 + rs)
+# 		rsi_list.append(rsi)
+# 	return rsi_list
 
 class RealTimeTickApp(EWrapper, EClient):
 
@@ -109,7 +109,7 @@ class RealTimeTickApp(EWrapper, EClient):
 					 low, close, volume) \
 					 VALUES ({csv})'.format(dbname = self.creds['dbname'],
 										  csv = csvOutputs)
-			run_query(query)
+			run_query(self.creds, query)
 
 	def mysqlConfig(self, creds):
 		# load in MySQL credentials
