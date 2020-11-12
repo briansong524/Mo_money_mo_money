@@ -44,22 +44,23 @@ def main():
 		for symbol in ['AAPL','AMZN','GOOGL','TSLA']:
 			try:
 				df_part = df[df['symbol'] == symbol].head(9).copy()
-				vals = (df_part['close'] - df_part['open']).values
-				if first_rsi:
-					rsi_, prevU, prevD = rsi(vals) 
-				else:
-					if last_datetime == df['datetime'].iloc[0].values:
-						rsi_, _, _ = rsi(vals, prevU, prevD) 
+				if df_part.shape[0] != 0:
+					vals = (df_part['close'] - df_part['open']).values
+					if first_rsi:
+						rsi_, prevU, prevD = rsi(vals) 
 					else:
-						rsi_, prevU, prevD = rsi(vals, prevU, prevD)
-					
-				last_datetime = df['datetime'].iloc[0].values
+						if last_datetime == df['datetime'].iloc[0].values:
+							rsi_, _, _ = rsi(vals, prevU, prevD) 
+						else:
+							rsi_, prevU, prevD = rsi(vals, prevU, prevD)
+						
+					last_datetime = df['datetime'].iloc[0].values
 
-				# send slack message based on rsi
-				if (rsi_ <= 20) | (rsi_ >= 80):
-					text = symbol + ' hit RSI ' + str(rsi_)
-					requests.post(slack_hook, json = myobj)
-					message_sent = True
+					# send slack message based on rsi
+					if (rsi_ <= 20) | (rsi_ >= 80):
+						text = symbol + ' hit RSI ' + str(rsi_)
+						requests.post(slack_hook, json = myobj)
+						message_sent = True
 
 			except Exception as e:
 				myobj = {"text":'something happened with ' + str(symbol) + ": " + str(e)}
