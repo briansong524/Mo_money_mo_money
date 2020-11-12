@@ -15,6 +15,7 @@ def main():
 
 	slack_hook = "https://hooks.slack.com/services/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"
 	first_rsi = True
+	message_sent = False
 	while 1==1:
 
 		query = 'SELECT * FROM {dbname}.bar_15min ORDER BY id DESC LIMIT 50'.format(dbname=conn_cred['dbname'])
@@ -39,6 +40,7 @@ def main():
 				if (rsi <= 20) | (rsi >= 80):
 					text = symbol + ' hit RSI ' + str(rsi)
 					requests.post(slack_hook, json = myobj)
+					message_sent = True
 
 			except:
 				myobj = {"text":'something happened with ' + str(symbol)}
@@ -46,11 +48,11 @@ def main():
 
 
 		# suppress slack messages for five minute if a message was sent
-		if no_message_sent:
-			time.sleep(5)
-		else:
-			no_message_sent = True
+		if message_sent:
 			time.sleep(300)
+			message_sent = False
+		else:
+			time.sleep(5)
 
 def rsi(vals, prevU = 0, prevD = 0, n = 9):
 	alpha = 2 / (n+1) # exponential method
