@@ -11,7 +11,6 @@ def main():
 				}
 	symbols = ['AAPL','TSLA','AMZN','GOOGL']
 	app = RealTimeTickApp()
-	app.reset()  # clear out any prior socket connections/issues
 	app.connect("127.0.0.1", 7497, 1)
 	app.mysqlConfig(conn_cred)
 	for i in range(len(symbols)):
@@ -20,6 +19,8 @@ def main():
 			app.start_reqRealTimeBars(i+1,contract,5,'TRADES',0,[])
 		except Exception as e:
 			print('Error with ' + str(symbols[i]) + ': ' + str(e))
+			app.reset()  # clear out any prior socket connections/issues
+			app.connect("127.0.0.1", 7497, 1)
 	app.run()
 
 if __name__ == '__main__':
