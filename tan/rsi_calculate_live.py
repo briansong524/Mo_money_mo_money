@@ -59,6 +59,7 @@ def main(FLAGS):
 					if first_rsi:
 						rsi_, prevU, prevD = rsi(vals) 
 						first_rsi = False
+						print('first rsi calculated: ' + str(rsi_))
 					else:
 						if last_datetime == df['datetime'].iloc[0].values:
 							rsi_, _, _ = rsi(vals, prevU, prevD) 
