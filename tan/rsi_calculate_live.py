@@ -24,7 +24,7 @@ def main(FLAGS):
 
 	with open(FLAGS.slack_webhook,'r') as txt:
 		slack_hook = txt.read()
-	slack_hook = 
+
 	first_rsi = True
 	message_sent = False
 	while 1==1:
