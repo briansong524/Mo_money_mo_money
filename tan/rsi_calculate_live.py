@@ -50,7 +50,7 @@ def main(FLAGS):
 				SELECT * FROM googl".format(dbname=conn_cred['dbname'])
 		rows = run_query(conn_cred, query)
 		df = pd.DataFrame(rows, columns = ['symbol','datetime','open','close','high','low','volume'])
-
+		print(df.head())
 		for symbol in ['AAPL','AMZN','GOOGL','TSLA']:
 			try:
 				df_part = df[df['symbol'] == symbol].copy()
