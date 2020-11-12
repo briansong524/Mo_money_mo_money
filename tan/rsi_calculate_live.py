@@ -49,13 +49,14 @@ def main(FLAGS):
 				UNION \
 				SELECT * FROM googl".format(dbname=conn_cred['dbname'])
 		rows = run_query(conn_cred, query)
-		df = pd.DataFrame(rows, columns = ['symbol','datetime','open','high','low','close','volume'])
+		df = pd.DataFrame(rows, columns = ['symbol','datetime','open','close','high','low','volume'])
 
 		for symbol in ['AAPL','AMZN','GOOGL','TSLA']:
 			try:
-				df_part = df[df['symbol'] == symbol].head(9).copy()
+				df_part = df[df['symbol'] == symbol].copy()
 				if df_part.shape[0] != 0:
 					vals = (df_part['close'] - df_part['open']).values
+					print(vals)
 					if first_rsi:
 						rsi_, prevU, prevD = rsi(vals) 
 						first_rsi = False
