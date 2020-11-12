@@ -72,7 +72,7 @@ def main(FLAGS):
 							rsi_, _, _ = rsi(vals, prevU, prevD) 
 							# print(rsi_)
 						else:
-							print('rsi @ ' + str(last_datetime) + ' = ' + str(rsi_))
+							print('rsi @ ' + str(info_dict[symbol]['last_datetime']) + ' = ' + str(rsi_))
 							rsi_, prevU, prevD = rsi(vals, prevU, prevD)
 						
 					info_dict[symbol]['last_datetime'] = df['datetime'].iloc[0]
