@@ -45,18 +45,18 @@ def main():
 				df_part = df[df['symbol'] == symbol].head(9).copy()
 				vals = (df_part['close'] - df_part['open']).values
 				if first_rsi:
-					rsi, prevU, prevD = rsi(vals) 
+					rsi_, prevU, prevD = rsi(vals) 
 				else:
 					if last_datetime == df['datetime'].iloc[0].values:
-						rsi, _, _ = rsi(vals, prevU, prevD) 
+						rsi_, _, _ = rsi(vals, prevU, prevD) 
 					else:
-						rsi, prevU, prevD = rsi(vals, prevU, prevD)
+						rsi_, prevU, prevD = rsi(vals, prevU, prevD)
 					
 				last_datetime = df['datetime'].iloc[0].values
 
 				# send slack message based on rsi
-				if (rsi <= 20) | (rsi >= 80):
-					text = symbol + ' hit RSI ' + str(rsi)
+				if (rsi_ <= 20) | (rsi_ >= 80):
+					text = symbol + ' hit RSI ' + str(rsi_)
 					requests.post(slack_hook, json = myobj)
 					message_sent = True
 
