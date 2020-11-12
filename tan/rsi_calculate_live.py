@@ -48,7 +48,7 @@ def main(FLAGS):
 				SELECT * FROM tsla \
 				UNION \
 				SELECT * FROM googl".format(dbname=conn_cred['dbname'])
-		rows = run_query(conn_cred, query)
+		rows = run_query(conn_cred, query, select_bool = True)
 		df = pd.DataFrame(rows, columns = ['symbol','datetime','open','close','high','low','volume'])
 		print(df.head())
 		for symbol in ['AAPL','AMZN','GOOGL','TSLA']:
