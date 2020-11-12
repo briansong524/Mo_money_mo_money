@@ -19,16 +19,16 @@ def main():
 	while 1==1:
 
 		query = "WITH amzn AS ( \
-				select * from {dbname}.bar_15min where symbol = 'AMZN' order by epoch desc limit 9 \
+				select * from {dbname}.bar_15min where symbol = 'AMZN' order by datetime_rounded desc limit 9 \
 				), \
 				aapl as ( \
-				select * from {dbname}.bar_15min where symbol = 'AAPL' order by epoch desc limit 9 \
+				select * from {dbname}.bar_15min where symbol = 'AAPL' order by datetime_rounded desc limit 9 \
 				), \
 				tsla as ( \
-				select * from {dbname}.bar_15min where symbol = 'TSLA' order by epoch desc limit 9 \
+				select * from {dbname}.bar_15min where symbol = 'TSLA' order by datetime_rounded desc limit 9 \
 				), \
 				googl as ( \
-				select * from {dbname}.bar_15min where symbol = 'GOOGL' order by epoch desc limit 9 \
+				select * from {dbname}.bar_15min where symbol = 'GOOGL' order by datetime_rounded desc limit 9 \
 				) \
 				SELECT * FROM amzn \
 				UNION  \
