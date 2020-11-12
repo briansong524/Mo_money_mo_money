@@ -60,8 +60,8 @@ def main():
 					requests.post(slack_hook, json = myobj)
 					message_sent = True
 
-			except:
-				myobj = {"text":'something happened with ' + str(symbol)}
+			except Exception as e:
+				myobj = {"text":'something happened with ' + str(symbol) + ": " + str(e)}
 				requests.post(slack_hook, json = myobj)
 
 
