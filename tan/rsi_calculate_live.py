@@ -18,7 +18,7 @@ def main():
 	message_sent = False
 	while 1==1:
 
-		query = 'with amzn as ( \
+		query = "WITH amzn AS ( \
 				select * from {dbname}.bar_15min where symbol = 'AMZN' order by epoch desc limit 9 \
 				), \
 				aapl as ( \
@@ -36,7 +36,7 @@ def main():
 				UNION \
 				SELECT * FROM tsla \
 				UNION \
-				SELECT * FROM googl'.format(dbname=conn_cred['dbname'])
+				SELECT * FROM googl".format(dbname=conn_cred['dbname'])
 		rows = run_query(conn_cred, query)
 		df = pd.DataFrame(rows, columns = ['symbol','datetime','open','high','low','close','volume'])
 
