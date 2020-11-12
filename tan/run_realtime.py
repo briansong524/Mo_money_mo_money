@@ -12,6 +12,7 @@ def main():
 	symbols = ['AAPL','TSLA','AMZN','GOOGL']
 	app = RealTimeTickApp()
 	app.connect("127.0.0.1", 7497, 1)
+	app.reset()  # clear out any prior socket issues
 	app.mysqlConfig(conn_cred)
 	for i in range(len(symbols)):
 		try:
