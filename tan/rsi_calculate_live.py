@@ -25,8 +25,13 @@ def main(FLAGS):
 	with open(FLAGS.slack_webhook,'r') as txt:
 		slack_hook = txt.read()
 
-	first_rsi = True
-	message_sent = False
+
+	symbols = ['AAPL','AMZN','GOOGL','TSLA']
+	info_dict = {}
+	for i in symbols:
+		# initialize
+		info_dict[i] = {'first_rsi':True, 'message_sent': False}  
+
 	while 1==1:
 
 		query = "WITH amzn AS ( \
@@ -51,25 +56,25 @@ def main(FLAGS):
 		rows = run_query(conn_cred, query, selectBool = True)
 		df = pd.DataFrame(rows, columns = ['symbol','datetime','open','close','high','low','volume'])
 		# print(df.head())
-		for symbol in ['AAPL','AMZN','GOOGL','TSLA']:
+		for symbol in symbols:
 			try:
 				df_part = df[df['symbol'] == symbol].copy()
 				if df_part.shape[0] != 0:
 					vals = (df_part['close'] - df_part['open']).astype(float).values
 					# print(vals)
-					if first_rsi:
+					if info_dict[symbol]['first_rsi']:
 						rsi_, prevU, prevD = rsi(vals) 
-						first_rsi = False
+						info_dict[symbol]['first_rsi'] = False
 						print('first rsi calculated for ' + str(symbol) + ': ' + str(rsi_))
 					else:
-						if last_datetime == df['datetime'].iloc[0].values:
+						if info_dict[symbol]['last_datetime'] == df['datetime'].iloc[0]:
 							rsi_, _, _ = rsi(vals, prevU, prevD) 
 							# print(rsi_)
 						else:
 							print('rsi @ ' + str(last_datetime) + ' = ' + str(rsi_))
 							rsi_, prevU, prevD = rsi(vals, prevU, prevD)
 						
-					last_datetime = df['datetime'].iloc[0]
+					info_dict[symbol]['last_datetime'] = df['datetime'].iloc[0]
 
 					# send slack message based on rsi
 					if (rsi_ <= 20) | (rsi_ >= 80):
