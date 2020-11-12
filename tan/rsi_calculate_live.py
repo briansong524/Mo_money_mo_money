@@ -32,6 +32,7 @@ def main(FLAGS):
 		# initialize
 		info_dict[i] = {'first_rsi':True, 'message_sent': False}  
 
+	message_sent = False
 	while 1==1:
 
 		query = "WITH amzn AS ( \
