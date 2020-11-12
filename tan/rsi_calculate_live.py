@@ -58,9 +58,11 @@ def main(FLAGS):
 					vals = (df_part['close'] - df_part['open']).values
 					if first_rsi:
 						rsi_, prevU, prevD = rsi(vals) 
+						first_rsi = False
 					else:
 						if last_datetime == df['datetime'].iloc[0].values:
 							rsi_, _, _ = rsi(vals, prevU, prevD) 
+							print(rsi_)
 						else:
 							print('rsi @ ' + str(last_datetime) + ' = ' + str(rsi_))
 							rsi_, prevU, prevD = rsi(vals, prevU, prevD)
