@@ -62,6 +62,7 @@ def main(FLAGS):
 						if last_datetime == df['datetime'].iloc[0].values:
 							rsi_, _, _ = rsi(vals, prevU, prevD) 
 						else:
+							print('rsi @ ' + str(last_datetime) + ' = ' + str(rsi_))
 							rsi_, prevU, prevD = rsi(vals, prevU, prevD)
 						
 					last_datetime = df['datetime'].iloc[0].values
