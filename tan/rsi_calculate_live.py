@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import pymysql as MySQLdb
 import requests
 import time
