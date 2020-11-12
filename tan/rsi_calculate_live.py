@@ -79,7 +79,7 @@ def main(FLAGS):
 
 					# send slack message based on rsi
 					if (rsi_ <= 20) | (rsi_ >= 80):
-						text = symbol + ' hit RSI ' + str(rsi_)
+						myobj = symbol + ' hit RSI ' + str(rsi_)
 						requests.post(slack_hook, json = myobj)
 						message_sent = True
 
