@@ -18,7 +18,25 @@ def main():
 	message_sent = False
 	while 1==1:
 
-		query = 'SELECT * FROM {dbname}.bar_15min ORDER BY id DESC LIMIT 50'.format(dbname=conn_cred['dbname'])
+		query = 'with amzn as ( \
+				select * from {dbname}.bar_15min where symbol = 'AMZN' order by epoch desc limit 9 \
+				), \
+				aapl as ( \
+				select * from {dbname}.bar_15min where symbol = 'AAPL' order by epoch desc limit 9 \
+				), \
+				tsla as ( \
+				select * from {dbname}.bar_15min where symbol = 'TSLA' order by epoch desc limit 9 \
+				), \
+				googl as ( \
+				select * from {dbname}.bar_15min where symbol = 'GOOGL' order by epoch desc limit 9 \
+				) \
+				SELECT * FROM amzn \
+				UNION  \
+				SELECT * FROM aapl \
+				UNION \
+				SELECT * FROM tsla \
+				UNION \
+				SELECT * FROM googl'.format(dbname=conn_cred['dbname'])
 		rows = run_query(conn_cred, query)
 		df = pd.DataFrame(rows, columns = ['symbol','datetime','open','high','low','close','volume'])
 
