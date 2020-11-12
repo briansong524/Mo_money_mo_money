@@ -4,9 +4,17 @@ import pymysql as MySQLdb
 import requests
 import time
 from utils import *
+import argparse
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument(
+	'--slack_webhook', type=str, default='/home/minx/Documents/slack_webhook.txt',
+	help = 'Text file with slack webhook link.')
 
 
-def main():
+
+def main(FLAGS):
 	conn_cred = {
 				"dbservername":"localhost",
 				"dbname":"main_schema",
@@ -14,7 +22,9 @@ def main():
 				"dbpassword":"!xobILE!!!111!"
 			}
 
-	slack_hook = "https://hooks.slack.com/services/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"
+	with open(FLAGS.slack_webhook,'r') as txt:
+		slack_hook = txt.read()
+	slack_hook = 
 	first_rsi = True
 	message_sent = False
 	while 1==1:
@@ -89,4 +99,5 @@ def rsi(vals, prevU = 0, prevD = 0, n = 9):
 
 
 if __name__ == '__main__':
-	main()
+	FLAGS, unparsed = parser.parse_known_args()
+	main(FLAGS)
