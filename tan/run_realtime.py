@@ -16,7 +16,7 @@ def main():
 	for i in range(len(symbols)):
 		try:
 			contract = basicContract(symbols[i])
-			app.start_reqRealTimeBars(i+1,contract,5,'TRADES',0,[])
+			app.start_reqRealTimeBars(i+1,contract,5,'TRADES',1,[])
 		except Exception as e:
 			print('Error with ' + str(symbols[i]) + ': ' + str(e))
 			app.reset()  # clear out any prior socket connections/issues
