@@ -11,9 +11,17 @@ import requests
 import time
 import json
 import argparse
+from datetime import datetime
 
 import pymysql as MySQLdb
 from utils import run_query, mysqlconn, db_conn_close
+
+from ibapi.wrapper import EWrapper
+from ibapi.client import EClient
+from ibapi.contract import Contract as IBcontract
+from threading import Thread
+import queue
+
 
 
 parser = argparse.ArgumentParser()
@@ -23,24 +31,15 @@ parser.add_argument(
 	'--config', type=str, default='/home/minx/Documents/config.conf',
 	help = 'Config file for all configuration info')
 
-def main():
+parser.add_argument(
+	'--symbol', type=str, 
+	help = 'Which symbol to update with data')
+
+parser.add_argument(
+	'--reset_database', type=bool, default=False,
+	help = 'If the database should be wiped out')
 
 
-
-from ibapi.wrapper import EWrapper
-from ibapi.client import EClient
-from ibapi.contract import Contract as IBcontract
-from threading import Thread
-import queue
-import datetime
-
-DEFAULT_HISTORIC_DATA_ID=50
-DEFAULT_GET_CONTRACT_ID=43
-
-## marker for when queue is finished
-FINISHED = object()
-STARTED = object()
-TIME_OUT = object()
 
 class finishableQueue(object):
 
@@ -261,7 +260,7 @@ class TestClient(EClient):
 		self.reqHistoricalData(
 			tickerid,  # tickerId,
 			ibcontract,  # contract,
-			datetime.datetime.today().strftime("%Y%m%d %H:%M:%S %Z"),  # endDateTime,
+			datetime.today().strftime("%Y%m%d %H:%M:%S %Z"),  # endDateTime,
 			durationStr,  # durationStr,
 			barSizeSetting,  # barSizeSetting,
 			"TRADES",  # whatToShow,
@@ -306,6 +305,52 @@ class TestApp(TestWrapper, TestClient):
 
 		self.init_error()
 
+def update(config, symbol):
+
+	conn_cred = config['conn_cred']
+	DEFAULT_HISTORIC_DATA_ID=50
+	DEFAULT_GET_CONTRACT_ID=43
+
+	## marker for when queue is finished
+	FINISHED = object()
+	STARTED = object()
+	TIME_OUT = object()
+
+	app = TestApp("127.0.0.1", 7497, 1)
+	ibcontract = IBcontract()
+	ibcontract.secType = "STK"
+	# ibcontract.lastTradeDateOrContractMonth="202011"
+	ibcontract.symbol=symbol
+	ibcontract.exchange="SMART"
+	ibcontract.currency = "USD"
+	ibcontract.primaryExchange = "NASDAQ"
+	resolved_ibcontract=app.resolve_ib_contract(ibcontract)
+	# print(resolved_ibcontract)
+	historic_data = app.get_IB_historical_data(resolved_ibcontract, durationStr = "1 W", barSizeSetting = "5 secs")
+
+	df = pd.DataFrame(historic_data, columns = ['datetime','open','high','low','close','volume'])
+	df['symbol'] = symbol
+	df['datetime'] = pd.to_datetime(df['datetime'],format = '%Y%m%d  %H:%M:%S')
+	 
+	df['epoch'] = (df['datetime'] - datetime(1970,1,1)).dt.total_seconds() + (480*60)
+	list_vals = df[['symbol','epoch','open','high','low','close','volume']].values.tolist()
+
+
+	## robust one-by-one insertion
+	# for i in range(len(list_vals)):
+	# 	query = "INSERT INTO {dbname}.bar_data (symbol, epoch,\
+	# 				open, high,low, close, volume\
+	# 				) VALUES ({csv})".format(dbname = conn_cred['dbname'],
+	# 								  csv = ','.join(map(lambda x: "'" + str(x) + "'",list_vals[i])))
+	# 	run_query(conn_cred, query)
+	## executemany (supposed to be a gajillion times faster)
+	query = "INSERT INTO {dbname}.bar_data (symbol, epoch,\
+	 				open, high,low, close, volume\
+	 				) VALUES (%s)".format(dbname=conn_cred['dbname'])
+	dbconn, cursor = mysql_conn(conn_cred['dbname'])
+	cursor.executemany(query, list_vals)
+	db_conn_close()
+	print('done updating')
 
 if __name__ == '__main__':
 	FLAGS, unparsed = parser.parse_known_args()
