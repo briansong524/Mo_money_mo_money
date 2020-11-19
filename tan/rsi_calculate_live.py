@@ -70,8 +70,8 @@ def main(config):
 					rsi_, prevU, prevD = calculate_rsi(val, prevU, prevD)
 
 					# update new prevU/prevD
-					info_dict['symbol']['avgU'] = prevU
-					info_dict['symbol']['avgD'] = prevD
+					info_dict[symbol]['avgU'] = prevU
+					info_dict[symbol]['avgD'] = prevD
 
 				# print(symbol + ' rsi: ' + str(round(rsi_,2)))
 					
