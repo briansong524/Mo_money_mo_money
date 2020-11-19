@@ -61,11 +61,17 @@ def main(config):
 				# values to measure rsi with
 				val = df_dict[symbol]['close'] - info_dict[symbol]['last_val']
 				info_dict[symbol]['last_val'] = df_dict[symbol]['close']
+				prevU = info_dict[symbol]['avgU']
+				prevD = info_dict[symbol]['avgD']
+
 				if info_dict[symbol]['last_epoch'] == df_dict[symbol]['epoch']:
 					rsi_, _, _ = calculate_rsi(val, prevU, prevD) 
 				else:
 					rsi_, prevU, prevD = calculate_rsi(val, prevU, prevD)
-				print(symbol + ' rsi: ' + str(round(rsi_,2)))
+					info_dict['symbol']['avgU'] = prevU
+					info_dict['symbol']['avgD'] = prevD
+
+				# print(symbol + ' rsi: ' + str(round(rsi_,2)))
 					
 				info_dict[symbol]['last_epoch'] = df_dict[symbol]['epoch']
 
