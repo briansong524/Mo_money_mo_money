@@ -180,8 +180,10 @@ class TestClient(EClient):
 		EClient.__init__(self, wrapper)
 		self._market_data_q_dict = {}
 
+		self.DEFAULT_HISTORIC_DATA_ID=50
+		self.DEFAULT_GET_CONTRACT_ID=43
 
-	def resolve_ib_contract(self, ibcontract, reqId=DEFAULT_GET_CONTRACT_ID):
+	def resolve_ib_contract(self, ibcontract, reqId=self.DEFAULT_GET_CONTRACT_ID):
 
 		"""
 		From a partially formed contract, returns a fully fledged version
@@ -284,8 +286,6 @@ class TestApp(TestWrapper, TestClient):
 def update(config, symbol):
 
 	conn_cred = config['conn_cred']
-	DEFAULT_HISTORIC_DATA_ID=50
-	DEFAULT_GET_CONTRACT_ID=43
 
 	## marker for when queue is finished
 	FINISHED = object()
@@ -332,4 +332,4 @@ if __name__ == '__main__':
 	FLAGS, unparsed = parser.parse_known_args()
 	with open(FLAGS.config,'r') as in_:
 		config = json.load(in_)
-	main(config)
+	update(config)
