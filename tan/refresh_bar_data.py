@@ -313,7 +313,7 @@ def update(config, symbol):
 	 
 	df['epoch'] = (df['datetime'] - datetime(1970,1,1)).dt.total_seconds() + (480*60)
 	list_vals = df[['symbol','epoch','open','high','low','close','volume']].values.tolist()
-	list_vals = (tuple(i) for i in list_vals)
+	# list_vals = (tuple(i) for i in list_vals) # for executemany()
 
 
 	print('inserting to sql database')
