@@ -306,15 +306,16 @@ def update(config, symbol):
 	resolved_ibcontract=app.resolve_ib_contract(ibcontract)
 	# print(resolved_ibcontract)
 	historic_data = app.get_IB_historical_data(resolved_ibcontract, durationStr = "1 W", barSizeSetting = "5 secs")
-
+	print('pulled historical data. converting data to something mysql expects')
 	df = pd.DataFrame(historic_data, columns = ['datetime','open','high','low','close','volume'])
 	df['symbol'] = symbol
 	df['datetime'] = pd.to_datetime(df['datetime'],format = '%Y%m%d  %H:%M:%S')
 	 
 	df['epoch'] = (df['datetime'] - datetime(1970,1,1)).dt.total_seconds() + (480*60)
 	list_vals = df[['symbol','epoch','open','high','low','close','volume']].values.tolist()
+	print('sample of data: ' + str(list_vals[0]))
 
-
+	print('inserting to sql database')
 	## robust one-by-one insertion
 	# for i in range(len(list_vals)):
 	# 	query = "INSERT INTO {dbname}.bar_data (symbol, epoch,\
