@@ -68,6 +68,8 @@ def main(config):
 					rsi_, _, _ = calculate_rsi(val, prevU, prevD) 
 				else:
 					rsi_, prevU, prevD = calculate_rsi(val, prevU, prevD)
+
+					# update new prevU/prevD
 					info_dict['symbol']['avgU'] = prevU
 					info_dict['symbol']['avgD'] = prevD
 
