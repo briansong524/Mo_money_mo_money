@@ -33,12 +33,12 @@ def main(config):
 	print('initializing RSI calculations with last 250 data points')
 	for symbol in symbols:
 		# initialize a dict that keeps track of stuff 
-		prevU, prevD, last_val = initilize_prevUD(conn_cred, bar_range, symbol)
+		prevU, prevD, last_val, last_epoch = initilize_prevUD(conn_cred, bar_range, symbol)
 		info_dict[symbol] = {
 						'avgU':prevU,
 						'avgD':prevD,  
 						'last_val':last_val,
-						'last_epoch':0,
+						'last_epoch':last_epoch,
 						'last_message':0 # epoch of last message sent
 					   }  
 	print('Done initializing')
@@ -98,18 +98,20 @@ def initilize_prevUD(conn_cred, bar_range, symbol):
 
 	
 	query = "WITH cte AS ( \
-			 SELECT close, datetime_rounded from {dbname}.bar_{bar_range}min \
+			 SELECT close, rounded_epoch from {dbname}.bar_{bar_range}min \
 			 WHERE symbol = '{symbol}' \
-			 ORDER BY datetime_rounded DESC LIMIT 250 \
+			 ORDER BY rounded_epoch DESC LIMIT 250 \
 			 ) \
-			 SELECT close FROM cte \
-			 ORDER BY datetime_rounded".format(
+			 SELECT close,rounded_epoch FROM cte \
+			 ORDER BY rounded_epoch".format(
 						dbname = conn_cred['dbname'], 
 						bar_range = bar_range,
 						symbol = symbol)
 	rows = run_query(conn_cred, query, selectBool = True) 
+	last_epoch = int(rows[-1][1])
 	rows = np.array(list(map(lambda x: float(x[0]), rows)))
 	last_val = rows[-1]
+	
 	rows = rows[1:] - rows[:-1]
 
 	# initial calculation
@@ -121,7 +123,7 @@ def initilize_prevUD(conn_cred, bar_range, symbol):
 	for i in range(9, len(rows)):
 		_, prevU, prevD = calculate_rsi(rows[i], prevU, prevD, 9)
 		
-	return prevU, prevD, last_val
+	return prevU, prevD, last_val, last_epoch
 
 
 def query_gen(conn_cred, bar_range, symbols):
