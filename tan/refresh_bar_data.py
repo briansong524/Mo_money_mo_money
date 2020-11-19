@@ -81,30 +81,6 @@ class finishableQueue(object):
 
 
 
-class IBtick(tick):
-	"""
-	Resolve IB tick categories
-	"""
-
-	def __init__(self, timestamp, tickid, value):
-
-		resolve_tickid=self.resolve_tickids(tickid)
-		super().__init__(timestamp, **dict([(resolve_tickid, value)]))
-
-	def resolve_tickids(self, tickid):
-
-		tickid_dict=dict([("0", "bid_size"), ("1", "bid_price"), ("2", "ask_price"), ("3", "ask_size"),
-						  ("4", "last_trade_price"), ("5", "last_trade_size")])
-
-		if str(tickid) in tickid_dict.keys():
-			return tickid_dict[str(tickid)]
-		else:
-			# This must be the same as the argument name in the parent class
-			return "ignorable_tick_id"
-
-
-
-
 
 
 class TestWrapper(EWrapper):
