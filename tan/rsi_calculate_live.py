@@ -80,10 +80,12 @@ def main(config):
 
 				# print(symbol + ' rsi: ' + str(round(rsi_,2)))
 					
-				info_dict[symbol]['last_epoch'] = df_dict[symbol]['epoch']
+				
 
 				# send slack message based on rsi
-				if (rsi_ <= 20) | (rsi_ >= 80):
+				bool1 = (rsi_ <= 20) | (rsi_ >= 80)
+				bool2 = info_dict[symbol]['last_epoch'] != df_dict[symbol]['epoch']
+				if bool1 & bool2:
 					epoch_ = info_dict[symbol]['last_epoch']
 					datetime_ = datetime.fromtimestamp(epoch_)
 					text = symbol + ' hit RSI ' + str(round(rsi_,2)) + ' at ' + str(datetime_)
@@ -91,6 +93,8 @@ def main(config):
 					if time.time() > info_dict[symbol]['last_message'] + 300: # five minutes after last message sent for specific symbol 
 						requests.post(slack_hook, json = myobj)
 						info_dict[symbol]['last_message'] = time.time()
+				
+				info_dict[symbol]['last_epoch'] = df_dict[symbol]['epoch']
 
 			except Exception as e:
 				myobj = {"text":'something happened with ' + str(symbol) + ": " + str(e)}
