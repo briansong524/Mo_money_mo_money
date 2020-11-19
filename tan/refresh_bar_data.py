@@ -14,6 +14,7 @@ import argparse
 from datetime import datetime
 
 import pymysql as MySQLdb
+import pandas as pd
 from utils import run_query, mysql_conn, db_conn_close
 
 from ibapi.wrapper import EWrapper
