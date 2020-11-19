@@ -333,4 +333,4 @@ if __name__ == '__main__':
 	FLAGS, unparsed = parser.parse_known_args()
 	with open(FLAGS.config,'r') as in_:
 		config = json.load(in_)
-	update(config)
+	update(config, FLAGS.symbol)
