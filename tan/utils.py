@@ -69,7 +69,15 @@ class RealTimeTickApp(EWrapper, EClient):
 
 	def error(self, reqId, errorCode, errorString):
 		print("Error: ", reqId, " ", errorCode, " ", errorString)
-	
+		if reqId in self.ticker_dict.keys():
+			print('restarting from bust event for reqID: ' + str(reqId) +
+				   ' (' + str(self.ticker_dict[reqId]['symbol']) + 
+				   '). check to make sure this makes sense')
+			self.reqRealTimeBars(reqId, ticker_dict[reqId]['contract'],
+								 ticker_dict[reqId]['barSize'],
+								 ticker_dict[reqId]['whatToShow'],
+								 ticker_dict[reqId]['useRTH'],
+								 ticker_dict[reqId]['realTimeBarsOptions'])
 		
 	## realtimebar stuff
 
@@ -81,8 +89,15 @@ class RealTimeTickApp(EWrapper, EClient):
 		# want to just print out the data being received, or sent to a MySQL
 		# database based on mysqlConfig()
 
-		self.ticker_dict[reqId] = contract.symbol
-		print('Starting requests for ' + str(self.ticker_dict[reqId]))
+		self.ticker_dict[reqId] = {
+								   'symbol':contract.symbol,
+								   'contract':contract,
+								   'barSize':barSize,
+								   'whatToShow':whatToShow,
+								   'useRTH':useRTH,
+								   'realTimeBarsOptions':realTimeBarsOptions
+								  }
+		print('Starting requests for ' + str(self.ticker_dict[reqId]['symbol']))
 		self.reqRealTimeBars(reqId, contract, barSize, 
 								whatToShow,useRTH,realTimeBarsOptions)
 
@@ -99,10 +114,10 @@ class RealTimeTickApp(EWrapper, EClient):
 		
 		
 		if self.outFormat == 'print':
-			print(self.ticker_dict[reqId],time, open_, high, low, close, 
+			print(self.ticker_dict[reqId]['symbol'],time, open_, high, low, close, 
 				  volume, wap, count)
 		elif self.outFormat == 'mysql':
-			list_vals = [self.ticker_dict[reqId],time, open_, 
+			list_vals = [self.ticker_dict[reqId]['symbol'],time, open_, 
 							high, low, close, volume]
 			csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",list_vals))
 			query = 'INSERT INTO {dbname}.bar_data (symbol, epoch, open, high, \

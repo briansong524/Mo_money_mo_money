@@ -334,6 +334,7 @@ def update(config, symbol):
 	# cursor.executemany(query, list_vals)
 	# db_conn_close()
 	print('done updating')
+	quit()
 
 if __name__ == '__main__':
 	FLAGS, unparsed = parser.parse_known_args()
