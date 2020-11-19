@@ -183,7 +183,7 @@ class TestClient(EClient):
 		self._market_data_q_dict = {}
 
 
-	def resolve_ib_contract(self, ibcontract, reqId=self.DEFAULT_GET_CONTRACT_ID):
+	def resolve_ib_contract(self, ibcontract, reqId=DEFAULT_GET_CONTRACT_ID):
 
 		"""
 		From a partially formed contract, returns a fully fledged version
