@@ -39,9 +39,14 @@ parser.add_argument(
 	'--reset_database', type=bool, default=False,
 	help = 'If the database should be wiped out')
 
-global DEFAULT_HISTORIC_DATA_ID, DEFAULT_GET_CONTRACT_ID
+global DEFAULT_HISTORIC_DATA_ID, DEFAULT_GET_CONTRACT_ID, FINISHED, STARTED, TIME_OUT
 DEFAULT_HISTORIC_DATA_ID=50
 DEFAULT_GET_CONTRACT_ID=43
+
+## marker for when queue is finished
+FINISHED = object()
+STARTED = object()
+TIME_OUT = object()
 
 class finishableQueue(object):
 
@@ -288,10 +293,6 @@ def update(config, symbol):
 	conn_cred = config['conn_cred']
 
 
-	## marker for when queue is finished
-	FINISHED = object()
-	STARTED = object()
-	TIME_OUT = object()
 
 	app = TestApp("127.0.0.1", 7497, 1)
 	ibcontract = IBcontract()
