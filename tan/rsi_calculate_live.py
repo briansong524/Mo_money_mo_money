@@ -53,7 +53,7 @@ def main(config):
 		df = pd.DataFrame(rows, columns = df_cols)
 		df['close'] = df['close'].astype(float)
 		df.set_index('symbol', inplace = True)
-
+		no_update_timer = 0
 		df_dict = df.to_dict('index')
 		for symbol in symbols:
 			try:
@@ -65,7 +65,11 @@ def main(config):
 				prevD = info_dict[symbol]['avgD']
 
 				if info_dict[symbol]['last_epoch'] == df_dict[symbol]['epoch']:
+					if time.time() > no_update_timer + 300:
+						print('no new update in database')
+						no_update_timer = time.time()
 					rsi_, _, _ = calculate_rsi(val, prevU, prevD) 
+
 				else:
 					rsi_, prevU, prevD = calculate_rsi(val, prevU, prevD)
 
