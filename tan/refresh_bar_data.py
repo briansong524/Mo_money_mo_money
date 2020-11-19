@@ -312,7 +312,8 @@ def update(config, symbol):
 	df['datetime'] = pd.to_datetime(df['datetime'],format = '%Y%m%d  %H:%M:%S')
 	 
 	df['epoch'] = (df['datetime'] - datetime(1970,1,1)).dt.total_seconds() + (480*60)
-	list_vals = df[['epoch','open','high','low','close','volume']].values.tolist()
+	list_vals = df[['symbol','epoch','open','high','low','close','volume']].values.tolist()
+	list_vals = (tuple(i) for i in list_vals)
 	print('sample of data: ' + str(list_vals[0]))
 
 	print('inserting to sql database')
@@ -326,7 +327,7 @@ def update(config, symbol):
 	## executemany (supposed to be a gajillion times faster)
 	query = "INSERT INTO {dbname}.bar_data (symbol, epoch,\
 	 				open, high,low, close, volume\
-	 				) VALUES ({symbol}, %s)".format(dbname=conn_cred['dbname'],
+	 				) VALUES (%s)".format(dbname=conn_cred['dbname'],
 	 												symbol=symbol)
 	dbconn, cursor = mysql_conn(conn_cred['dbname'])
 	cursor.executemany(query, list_vals)
