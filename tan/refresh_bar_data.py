@@ -14,7 +14,7 @@ import argparse
 from datetime import datetime
 
 import pymysql as MySQLdb
-from utils import run_query, mysqlconn, db_conn_close
+from utils import run_query, mysql_conn, db_conn_close
 
 from ibapi.wrapper import EWrapper
 from ibapi.client import EClient
