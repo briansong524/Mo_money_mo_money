@@ -7,6 +7,7 @@ import requests
 import time
 import json
 import argparse
+from datetime import datetime
 
 import pandas as pd
 import numpy as np
@@ -83,7 +84,9 @@ def main(config):
 
 				# send slack message based on rsi
 				if (rsi_ <= 20) | (rsi_ >= 80):
-					text = symbol + ' hit RSI ' + str(round(rsi_,2)) + ' at ' + str(info_dict[symbol]['last_epoch'])
+					epoch_ = info_dict[symbol]['last_epoch']
+					datetime_ = datetime.fromtimestamp(epoch_)
+					text = symbol + ' hit RSI ' + str(round(rsi_,2)) + ' at ' + str(datetime_)
 					myobj = {"text":text}
 					if time.time() > info_dict[symbol]['last_message'] + 300: # five minutes after last message sent for specific symbol 
 						requests.post(slack_hook, json = myobj)
