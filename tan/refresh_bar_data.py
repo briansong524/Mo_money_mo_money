@@ -318,20 +318,21 @@ def update(config, symbol):
 
 	print('inserting to sql database')
 	## robust one-by-one insertion
-	# for i in range(len(list_vals)):
-	# 	query = "INSERT INTO {dbname}.bar_data (symbol, epoch,\
-	# 				open, high,low, close, volume\
-	# 				) VALUES ({csv})".format(dbname = conn_cred['dbname'],
-	# 								  csv = ','.join(map(lambda x: "'" + str(x) + "'",list_vals[i])))
-	# 	run_query(conn_cred, query)
+	for i in range(len(list_vals)):
+		query = "INSERT INTO {dbname}.bar_data (symbol, epoch,\
+					open, high,low, close, volume\
+					) VALUES ({csv})".format(dbname = conn_cred['dbname'],
+									  csv = ','.join(map(lambda x: "'" + str(x) + "'",list_vals[i])))
+		run_query(conn_cred, query)
 	## executemany (supposed to be a gajillion times faster)
-	query = "INSERT INTO {dbname}.bar_data (symbol, epoch,\
-	 				open, high,low, close, volume\
-	 				) VALUES (%s)".format(dbname=conn_cred['dbname'],
-	 												symbol=symbol)
-	dbconn, cursor = mysql_conn(conn_cred['dbname'])
-	cursor.executemany(query, list_vals)
-	db_conn_close()
+	## dunno how to make this work tho
+	# query = "INSERT INTO {dbname}.bar_data (symbol, epoch,\
+	#  				open, high,low, close, volume\
+	#  				) VALUES (%s)".format(dbname=conn_cred['dbname'],
+	#  												symbol=symbol)
+	# dbconn, cursor = mysql_conn(conn_cred['dbname'])
+	# cursor.executemany(query, list_vals)
+	# db_conn_close()
 	print('done updating')
 
 if __name__ == '__main__':
