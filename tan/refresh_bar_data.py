@@ -39,7 +39,9 @@ parser.add_argument(
 	'--reset_database', type=bool, default=False,
 	help = 'If the database should be wiped out')
 
-
+global DEFAULT_HISTORIC_DATA_ID, DEFAULT_GET_CONTRACT_ID
+DEFAULT_HISTORIC_DATA_ID=50
+DEFAULT_GET_CONTRACT_ID=43
 
 class finishableQueue(object):
 
@@ -180,8 +182,6 @@ class TestClient(EClient):
 		EClient.__init__(self, wrapper)
 		self._market_data_q_dict = {}
 
-		self.DEFAULT_HISTORIC_DATA_ID=50
-		self.DEFAULT_GET_CONTRACT_ID=43
 
 	def resolve_ib_contract(self, ibcontract, reqId=self.DEFAULT_GET_CONTRACT_ID):
 
@@ -286,6 +286,7 @@ class TestApp(TestWrapper, TestClient):
 def update(config, symbol):
 
 	conn_cred = config['conn_cred']
+
 
 	## marker for when queue is finished
 	FINISHED = object()
