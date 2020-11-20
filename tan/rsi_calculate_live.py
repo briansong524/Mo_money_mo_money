@@ -91,17 +91,23 @@ def main(config):
 					text = symbol + ' hit RSI ' + str(round(rsi_,2)) + ' at ' + str(datetime_)
 					myobj = {"text":text}
 					if time.time() > info_dict[symbol]['last_message'] + 300: # five minutes after last message sent for specific symbol 
-						requests.post(slack_hook, json = myobj)
+						send_message_slack(slack_hook, myobj)
 						info_dict[symbol]['last_message'] = time.time()
 				
 				info_dict[symbol]['last_epoch'] = df_dict[symbol]['epoch']
 
 			except Exception as e:
 				myobj = {"text":'something happened with ' + str(symbol) + ": " + str(e)}
-				requests.post(slack_hook, json = myobj)
+				send_message_slack(slack_hook, myobj)
 
 
 		time.sleep(5) # controlling the rate of the loop with 5 second delays
+
+def send_message_slack(slack_hook, myobj):
+	try:
+		requests.post(slack_hook, json = myobj)
+	except Exception as e:
+		print('request failed for some reason, probably internet connection lost. not sending message to slack')
 
 def initilize_prevUD(conn_cred, bar_range, symbol):
 	# get last 100 close values

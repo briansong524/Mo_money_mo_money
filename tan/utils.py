@@ -70,15 +70,25 @@ class RealTimeTickApp(EWrapper, EClient):
 	def error(self, reqId, errorCode, errorString):
 		print("Error: ", reqId, " ", errorCode, " ", errorString)
 		if reqId in self.ticker_dict.keys():
-			print('restarting from bust event for reqID: ' + str(reqId) +
+			print('restarting from bust event for reqId: ' + str(reqId) +
 				   ' (' + str(self.ticker_dict[reqId]['symbol']) + 
 				   '). check to make sure this makes sense')
-			self.reqRealTimeBars(reqId, ticker_dict[reqId]['contract'],
+			try:
+				print('cancelling realtimebars connection')
+				self.cancelRealTimeBars(reqId)
+			except Exception as e:
+				print('cancelling failed')
+				print('error: ' + str(e))
+			try:
+				print('restarting request')
+				self.reqRealTimeBars(reqId, ticker_dict[reqId]['contract'],
 								 ticker_dict[reqId]['barSize'],
 								 ticker_dict[reqId]['whatToShow'],
 								 ticker_dict[reqId]['useRTH'],
 								 ticker_dict[reqId]['realTimeBarsOptions'])
-		
+			except Exception as e:
+				print('restarting request failed')
+				print('error: ' + str(e))		
 	## realtimebar stuff
 
 	def start_reqRealTimeBars(self, reqId, contract, barSize, whatToShow,
