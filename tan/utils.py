@@ -74,12 +74,6 @@ class RealTimeTickApp(EWrapper, EClient):
 				   ' (' + str(self.ticker_dict[reqId]['symbol']) + 
 				   '). check to make sure this makes sense')
 			try:
-				print('cancelling realtimebars connection')
-				self.cancelRealTimeBars(reqId)
-			except Exception as e:
-				print('cancelling failed')
-				print('error: ' + str(e))
-			try:
 				print('restarting request')
 				self.reqRealTimeBars(reqId, ticker_dict[reqId]['contract'],
 								 ticker_dict[reqId]['barSize'],
@@ -89,6 +83,8 @@ class RealTimeTickApp(EWrapper, EClient):
 			except Exception as e:
 				print('restarting request failed')
 				print('error: ' + str(e))		
+
+
 	## realtimebar stuff
 
 	def start_reqRealTimeBars(self, reqId, contract, barSize, whatToShow,
