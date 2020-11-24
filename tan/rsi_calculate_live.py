@@ -40,7 +40,8 @@ def main(config):
 						'avgD':prevD,  
 						'last_val':last_val,
 						'last_epoch':last_epoch,
-						'last_message':0 # epoch of last message sent
+						'last_message':0, # epoch of last message sent
+						'rsi':0
 					   }  
 	print('Done initializing')
 	no_update_timer = 0
@@ -85,7 +86,9 @@ def main(config):
 				# send slack message based on rsi
 				bool1 = (rsi_ <= 20) | (rsi_ >= 80)
 				bool2 = info_dict[symbol]['last_epoch'] != df_dict[symbol]['epoch']
-				if bool1 & bool2:
+				bool3 = rsi_ != info_dict[symbol]['rsi']
+
+				if bool1 & bool2 & bool3:
 					epoch_ = info_dict[symbol]['last_epoch']
 					datetime_ = datetime.fromtimestamp(epoch_)
 					text = symbol + ' hit RSI ' + str(round(rsi_,2)) + ' at ' + str(datetime_)
@@ -94,8 +97,9 @@ def main(config):
 						send_message_slack(slack_hook, myobj)
 						info_dict[symbol]['last_message'] = time.time()
 				
+				# update info_dict
 				info_dict[symbol]['last_epoch'] = df_dict[symbol]['epoch']
-
+				info_dict[symbol]['rsi'] = rsi_
 			except Exception as e:
 				myobj = {"text":'something happened with ' + str(symbol) + ": " + str(e)}
 				send_message_slack(slack_hook, myobj)
