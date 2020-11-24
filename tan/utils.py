@@ -75,6 +75,7 @@ class RealTimeTickApp(EWrapper, EClient):
 				   '). check to make sure this makes sense')
 			try:
 				print('restarting request')
+				self.cancelRealTimeBars(reqId)
 				self.reqRealTimeBars(reqId, self.ticker_dict[reqId]['contract'],
 								 self.ticker_dict[reqId]['barSize'],
 								 self.ticker_dict[reqId]['whatToShow'],
