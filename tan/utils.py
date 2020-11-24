@@ -75,11 +75,11 @@ class RealTimeTickApp(EWrapper, EClient):
 				   '). check to make sure this makes sense')
 			try:
 				print('restarting request')
-				self.reqRealTimeBars(reqId, ticker_dict[reqId]['contract'],
-								 ticker_dict[reqId]['barSize'],
-								 ticker_dict[reqId]['whatToShow'],
-								 ticker_dict[reqId]['useRTH'],
-								 ticker_dict[reqId]['realTimeBarsOptions'])
+				self.reqRealTimeBars(reqId, self.ticker_dict[reqId]['contract'],
+								 self.ticker_dict[reqId]['barSize'],
+								 self.ticker_dict[reqId]['whatToShow'],
+								 self.ticker_dict[reqId]['useRTH'],
+								 self.ticker_dict[reqId]['realTimeBarsOptions'])
 			except Exception as e:
 				print('restarting request failed')
 				print('error: ' + str(e))		
