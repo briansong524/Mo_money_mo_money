@@ -86,14 +86,17 @@ def main(config):
 				# send slack message based on rsi
 				bool1 = (rsi_ <= 20) | (rsi_ >= 80)
 				bool2 = info_dict[symbol]['last_epoch'] != df_dict[symbol]['epoch']
-				bool3 = rsi_ != info_dict[symbol]['rsi']
-
-				if bool1 & bool2 & bool3:
+				
+				if bool1 & bool2:
 					epoch_ = info_dict[symbol]['last_epoch']
 					datetime_ = datetime.fromtimestamp(epoch_)
 					text = symbol + ' hit RSI ' + str(round(rsi_,2)) + ' at ' + str(datetime_)
 					myobj = {"text":text}
-					if time.time() > info_dict[symbol]['last_message'] + 300: # five minutes after last message sent for specific symbol 
+				
+					five_min_buffer = time.time() > info_dict[symbol]['last_message'] + 300
+					no_repeat = rsi_ != info_dict[symbol]['rsi']
+
+					if five_min_buffer & no_repeat: # five minutes after last message sent for specific symbol 
 						send_message_slack(slack_hook, myobj)
 						info_dict[symbol]['last_message'] = time.time()
 				
