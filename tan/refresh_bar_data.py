@@ -6,7 +6,7 @@
 #
 
 
-
+import sys
 import requests
 import time
 import json
@@ -334,7 +334,7 @@ def update(config, symbol):
 	# cursor.executemany(query, list_vals)
 	# db_conn_close()
 	print('done updating')
-	quit()
+	sys.exit()
 
 if __name__ == '__main__':
 	FLAGS, unparsed = parser.parse_known_args()
