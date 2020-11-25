@@ -52,7 +52,7 @@ def main(config):
 	for i in range(len(symbols)):
 		contract = basicContract(symbols[i])
 		app.start_historicalBar(reqId = i+1, 
-								  contract = ontract, 
+								  contract = contract, 
 								  durationStr = "1 W", 
 								  barSizeSetting = "5 secs"
 								 )
