@@ -336,6 +336,7 @@ def update(config, symbol):
 	# cursor.executemany(query, list_vals)
 	# db_conn_close()
 	print('done updating')
+	app.conn.disconnect()
 	app.done = True
 	sys.exit()
 
