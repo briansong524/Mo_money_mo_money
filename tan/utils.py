@@ -5,7 +5,8 @@ from ibapi.ticktype import TickTypeEnum
 
 import pymysql as MySQLdb
 
-import time 
+import time
+from datetime import datetime
 
 
 def basicContract(symbol, secType = 'STK', exchange = 'SMART', 
@@ -118,20 +119,23 @@ class RealTimeTickApp(EWrapper, EClient):
 		# database based on mysqlConfig()
 		# 
 		# note that time is returned as epoch time for GMT
-		
-		
+
 		if self.outFormat == 'print':
 			print(self.ticker_dict[reqId]['symbol'],time, open_, high, low, close, 
 				  volume, wap, count)
 		elif self.outFormat == 'mysql':
-			list_vals = [self.ticker_dict[reqId]['symbol'],time, open_, 
-							high, low, close, volume]
-			csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",list_vals))
-			query = 'INSERT INTO {dbname}.bar_data (symbol, epoch, open, high, \
-					 low, close, volume) \
-					 VALUES ({csv})'.format(dbname = self.creds['dbname'],
-										  csv = csvOutputs)
-			run_query(self.creds, query)
+			now = datetime.now() # basing these numbers on pst
+			rth_start = (now.hour >= 6) & (now.minute >= 30)
+			rth_end = (now.hour < 13) 
+			if rth_start & rth_end:
+				list_vals = [self.ticker_dict[reqId]['symbol'],time, open_, 
+								high, low, close, volume]
+				csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",list_vals))
+				query = 'INSERT INTO {dbname}.bar_data (symbol, epoch, open, high, \
+						 low, close, volume) \
+						 VALUES ({csv})'.format(dbname = self.creds['dbname'],
+											  csv = csvOutputs)
+				run_query(self.creds, query)
 
 	def mysqlConfig(self, creds):
 		# load in MySQL credentials
