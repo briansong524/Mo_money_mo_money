@@ -288,6 +288,8 @@ class TestApp(TestWrapper, TestClient):
 		setattr(self, "_thread", thread)
 
 		self.init_error()
+	def kill_thread(self):
+		self._thread.stop()
 
 def update(config, symbol):
 
@@ -334,6 +336,7 @@ def update(config, symbol):
 	# cursor.executemany(query, list_vals)
 	# db_conn_close()
 	print('done updating')
+	app.kill_thread()
 	sys.exit()
 
 if __name__ == '__main__':
