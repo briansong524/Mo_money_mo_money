@@ -50,6 +50,7 @@ def main(config):
 	app.mysqlConfig(conn_cred)
 
 	for i in range(len(symbols)):
+		print('running for ' + symbols[i]) 
 		contract = basicContract(symbols[i])
 		app.start_historicalBar(reqId = i+1, 
 								  contract = contract, 
@@ -86,6 +87,8 @@ class historicalApp(EWrapper, EClient):
 	def historicalData(self, reqId, bar):
 		bardata=(bar.date, bar.open, bar.high, bar.low, bar.close, bar.volume)
 
+		print('historical data received for ' + str(self.ticker_dict[reqId]['symbol']))
+		print('received ' + str(len(bardata)) + ' rows to insert. inserting')
 		for list_vals in bardata:
 			csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",list_vals))
 			query = 'INSERT INTO {dbname}.bar_data (symbol, epoch, open, high, \
@@ -94,6 +97,7 @@ class historicalApp(EWrapper, EClient):
 							 					  symbol = "'" + self.ticker_dict[reqId]['symbol'] + "'",
 												  csv = csvOutputs)
 			run_query(self.creds, query)
+		print('done inserting ' + str(self.ticker_dict[reqId]['symbol']) + ' to database')
 		self.cancelHistoricalData(reqId)
 		
 
