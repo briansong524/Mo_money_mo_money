@@ -289,7 +289,7 @@ class TestApp(TestWrapper, TestClient):
 
 		self.init_error()
 	def kill_thread(self):
-		self._thread.stop()
+		self._thread.release()
 
 def update(config, symbol):
 
