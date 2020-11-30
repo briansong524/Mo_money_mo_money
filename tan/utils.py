@@ -119,6 +119,7 @@ class RealTimeTickApp(EWrapper, EClient):
 		# database based on mysqlConfig()
 		# 
 		# note that time is returned as epoch time for GMT
+		# Volume for US stocks has a multiplier of 100
 
 		if self.outFormat == 'print':
 			print(self.ticker_dict[reqId]['symbol'],time, open_, high, low, close, 
