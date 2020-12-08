@@ -51,7 +51,7 @@ def main(config):
 			csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",bardata))
 			query = 'INSERT INTO {dbname}.bar_data_yf (symbol, epoch, open, high, \
 							 low, close, volume) \
-							 VALUES ({symbol},{csv})'.format(dbname = conn_creds['dbname'],
+							 VALUES ({symbol},{csv})'.format(dbname = conn_cred['dbname'],
 							 					  symbol = "'" + symbols[i] + "'",
 												  csv = csvOutputs)
 			run_query(conn_cred, query)
