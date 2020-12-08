@@ -39,7 +39,7 @@ def main(config):
 					query = 'INSERT INTO {dbname}.bar_data_yfS (symbol, epoch, open, high, \
 							 low, close, volume) \
 							 VALUES ({symbol},{csv})'.format(dbname = conn_cred['dbname'],
-							 					  symbol = "'" + symbols[i] + "'",
+							 					  symbol = "'" + symbol + "'",
 												  csv = csvOutputs)
 					run_query(conn_cred, query)
 			time.sleep(30)
