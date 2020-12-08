@@ -23,7 +23,7 @@ def main(config):
 		while True:
 			data = yf.download(tickers = config['symbols'].replace(',',' '), period = '1d', 
 							   interval = '1m', group_by = 'ticker')
-			latest_dt = data['Datetime'].iloc[-1]
+			latest_dt = data.index.iloc[-1] # index contains datetime for multi symbols
 			if latest_dt != last_dt:
 				last_dt = latest_dt
 				for symbol in symbols:
@@ -42,6 +42,7 @@ def main(config):
 							 					  symbol = "'" + symbols[i] + "'",
 												  csv = csvOutputs)
 					run_query(conn_cred, query)
+			time.sleep(30)
 
 	except Exception as e:
 		print('error in run_realtime: ' + str(e))
