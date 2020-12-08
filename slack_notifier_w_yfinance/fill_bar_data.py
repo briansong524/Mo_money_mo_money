@@ -48,7 +48,7 @@ def main(config):
 		data['Epoch'] = data.Datetime.map(convert_dt_to_epoch)
 		for _, bar in data.iterrows():
 			bardata = (bar.Epoch, bar.Open, bar.High, bar.Low, bar.Close, bar.Volume)
-			csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",list_vals))
+			csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",bardata))
 			query = 'INSERT INTO {dbname}.bar_data_yf (symbol, epoch, open, high, \
 							 low, close, volume) \
 							 VALUES ({symbol},{csv})'.format(dbname = conn_creds['dbname'],
