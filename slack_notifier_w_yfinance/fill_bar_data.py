@@ -11,7 +11,6 @@ import requests
 import time
 import json
 import argparse
-from datetime import datetime
 
 import yfinance as yf
 from pytz import timezone
