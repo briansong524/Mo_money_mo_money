@@ -36,7 +36,7 @@ def main(config):
 							   latest_data.Volume
 							   )
 					csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",bardata))
-					query = 'INSERT INTO {dbname}.bar_data_yfS (symbol, epoch, open, high, \
+					query = 'INSERT INTO {dbname}.bar_data_yf (symbol, epoch, open, high, \
 							 low, close, volume) \
 							 VALUES ({symbol},{csv})'.format(dbname = conn_cred['dbname'],
 							 					  symbol = "'" + symbol + "'",
