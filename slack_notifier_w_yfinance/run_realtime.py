@@ -23,11 +23,13 @@ def main(config):
 		while True:
 			data = yf.download(tickers = config['symbols'].replace(',',' '), period = '1d', 
 							   interval = '1m', group_by = 'ticker')
+			print(data.head())
 			latest_dt = data.index[-1] # index contains datetime for multi symbols
 			if latest_dt != last_dt:
 				last_dt = latest_dt
 				for symbol in symbols:
 					latest_data = data[symbol].iloc[-1,:].copy()
+					print(latest_data)
 					bardata = (convert_dt_to_epoch(last_dt),
 							   latest_data.Open, 
 							   latest_data.High, 
