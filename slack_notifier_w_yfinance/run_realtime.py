@@ -31,13 +31,17 @@ def main(config):
 			if (mod_time >= 30) & (mod_time <= 32):
 				data = yf.download(tickers = config['symbols'].replace(',',' '), period = '1d', 
 								   interval = '1m', group_by = 'ticker')
-				data = data.dropna() # drops 'live' data 
+
+				# dropping incomplete data
+				data = data.dropna() 
+				for symbol in symbols:
+					data = data[data[(symbol,'Volume')] != 0] # this maybe overkill
 				latest_dt = data.index[-1] # index contains datetime for multi symbols
 				if latest_dt != last_dt:
 					last_dt = latest_dt
 					for symbol in symbols:
 						latest_data = data[symbol].iloc[-1,:].copy()
-						print(latest_data)
+						# print(latest_data)
 						bardata = (convert_dt_to_epoch(last_dt),
 								   latest_data.Open, 
 								   latest_data.High, 
@@ -45,7 +49,7 @@ def main(config):
 								   latest_data.Close, 
 								   latest_data.Volume
 								   )
-						print(bardata)
+						# print(bardata)
 						csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",bardata))
 						query = 'INSERT INTO {dbname}.bar_data_yf (symbol, epoch, open, high, \
 								 low, close, volume) \
@@ -58,7 +62,7 @@ def main(config):
 				time.sleep(30)
 			else:
 				time_til_30 = 30 - mod_time
-				time.sleep(time_til_30)
+				time.sleep(time_til_30 - 1)
 
 	except Exception as e:
 		print('error in run_realtime: ' + str(e))
