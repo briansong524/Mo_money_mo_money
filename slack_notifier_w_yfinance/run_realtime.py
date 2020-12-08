@@ -35,6 +35,7 @@ def main(config):
 							   latest_data.Close, 
 							   latest_data.Volume
 							   )
+					print(bardata)
 					csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",bardata))
 					query = 'INSERT INTO {dbname}.bar_data_yf (symbol, epoch, open, high, \
 							 low, close, volume) \
