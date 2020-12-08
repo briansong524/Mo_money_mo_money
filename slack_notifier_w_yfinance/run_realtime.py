@@ -33,10 +33,10 @@ def main(config):
 							   latest_data.Close, 
 							   latest_data.Volume
 							   )
-					csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",list_vals))
+					csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",bardata))
 					query = 'INSERT INTO {dbname}.bar_data_yfS (symbol, epoch, open, high, \
 							 low, close, volume) \
-							 VALUES ({symbol},{csv})'.format(dbname = conn_creds['dbname'],
+							 VALUES ({symbol},{csv})'.format(dbname = conn_cred['dbname'],
 							 					  symbol = "'" + symbols[i] + "'",
 												  csv = csvOutputs)
 					run_query(conn_cred, query)
