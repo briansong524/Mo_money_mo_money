@@ -45,7 +45,7 @@ def main(config):
 		ticker = yf.Ticker(symbols[i])
 		data = ticker.history(period = '1d',
 		                   interval = '1m').reset_index()
-		data['epoch'] = data.Datetime.map(convert_dt_to_epoch)
+		data['Epoch'] = data.Datetime.map(convert_dt_to_epoch)
 		for _, bar in data.iterrows():
 			bardata = (bar.Epoch, bar.Open, bar.High, bar.Low, bar.Close, bar.Volume)
 			csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",list_vals))
