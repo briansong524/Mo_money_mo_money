@@ -1,3 +1,8 @@
+'''
+obtain realtime data from yahoo finance through yfinance.
+because 'live' data is incomplete and useless - data will be one min delayed
+'''
+
 import time
 import argparse
 import json
@@ -21,31 +26,39 @@ def main(config):
 		conn_cred = config['conn_cred']
 		symbols = config['symbols'].split(',')
 		while True:
-			data = yf.download(tickers = config['symbols'].replace(',',' '), period = '1d', 
-							   interval = '1m', group_by = 'ticker')
-			print(data.tail())
-			latest_dt = data.index[-1] # index contains datetime for multi symbols
-			if latest_dt != last_dt:
-				last_dt = latest_dt
-				for symbol in symbols:
-					latest_data = data[symbol].iloc[-1,:].copy()
-					print(latest_data)
-					bardata = (convert_dt_to_epoch(last_dt),
-							   latest_data.Open, 
-							   latest_data.High, 
-							   latest_data.Low, 
-							   latest_data.Close, 
-							   latest_data.Volume
-							   )
-					print(bardata)
-					csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",bardata))
-					query = 'INSERT INTO {dbname}.bar_data_yf (symbol, epoch, open, high, \
-							 low, close, volume) \
-							 VALUES ({symbol},{csv})'.format(dbname = conn_cred['dbname'],
-							 					  symbol = "'" + symbol + "'",
-												  csv = csvOutputs)
-					run_query(conn_cred, query)
-			time.sleep(30)
+			curr_time = time.time()
+			mod_time = np.floor(curr_time % 60)
+			if (mod_time >= 30) & (mod_time <= 32):
+				data = yf.download(tickers = config['symbols'].replace(',',' '), period = '1d', 
+								   interval = '1m', group_by = 'ticker')
+				data = data.dropna() # drops 'live' data 
+				latest_dt = data.index[-1] # index contains datetime for multi symbols
+				if latest_dt != last_dt:
+					last_dt = latest_dt
+					for symbol in symbols:
+						latest_data = data[symbol].iloc[-1,:].copy()
+						print(latest_data)
+						bardata = (convert_dt_to_epoch(last_dt),
+								   latest_data.Open, 
+								   latest_data.High, 
+								   latest_data.Low, 
+								   latest_data.Close, 
+								   latest_data.Volume
+								   )
+						print(bardata)
+						csvOutputs = ','.join(map(lambda x: "'" + str(x) + "'",bardata))
+						query = 'INSERT INTO {dbname}.bar_data_yf (symbol, epoch, open, high, \
+								 low, close, volume) \
+								 VALUES ({symbol},{csv})'.format(dbname = conn_cred['dbname'],
+								 					  symbol = "'" + symbol + "'",
+													  csv = csvOutputs)
+						run_query(conn_cred, query)
+				time.sleep(3)
+			elif mod_time > 32:
+				time.sleep(30)
+			else:
+				time_til_30 = 30 - mod_time
+				time.sleep(time_til_30)
 
 	except Exception as e:
 		print('error in run_realtime: ' + str(e))
