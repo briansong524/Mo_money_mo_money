@@ -57,13 +57,8 @@ def main(config):
 								 					  symbol = "'" + symbol + "'",
 													  csv = csvOutputs)
 						run_query(conn_cred, query)
-				time.sleep(3)
-			elif mod_time > 32:
-				time.sleep(30)
-			else:
-				time_til_30 = 30 - mod_time
-				time.sleep(time_til_30 - 1)
-
+					time.sleep(3) # stops checking for this minute
+			
 	except Exception as e:
 		print('error in run_realtime: ' + str(e))
 
