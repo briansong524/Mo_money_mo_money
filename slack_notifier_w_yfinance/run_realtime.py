@@ -26,6 +26,13 @@ def main(config):
 		conn_cred = config['conn_cred']
 		symbols = config['symbols'].split(',')
 		while True:
+			
+			# define to run only during regular trading hours
+			current_time = time.time()
+			open_seconds = 14.5*60*60. # 2:30pm GMT
+			close_seconds = 21*60*60. # 9pm GMT
+			
+			if  >= open_seconds 
 			curr_time = time.time()
 			mod_time = np.floor(curr_time % 60)
 			if (mod_time >= 30) & (mod_time <= 32):
