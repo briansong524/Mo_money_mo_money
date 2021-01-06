@@ -21,7 +21,7 @@ class MarketReader(EWrapper, EClient):
 		thread.start()
 
 		# remove
-		self.current_price = 132.74
+		self.current_price = 999.74
 	# @iswrapper
 	# def tickByTickMidPoint(self, reqId, tick_time, midpoint):
 	# 	''' Called in response to reqTickByTickData '''
@@ -44,6 +44,7 @@ class MarketReader(EWrapper, EClient):
 	def realtimeBar(self, reqId, time, open, high, low,
 		close, volume, WAP, count):
 		''' Called in response to reqRealTimeBars '''
+		self.current_price = close
 		print('realtimeBar - Opening price: {}'.format(open))
 
 	@iswrapper
@@ -56,7 +57,8 @@ class MarketReader(EWrapper, EClient):
 	def fundamentalData(self, reqId, data):
 		''' Called in response to reqFundamentalData '''
 		print('Fundamental data: ' + data)
-		
+	
+	@iswrapper
 	def error(self, reqId, code, msg):
 		print('Error {}: {}'.format(code, msg))
 
@@ -65,6 +67,8 @@ class MarketReader(EWrapper, EClient):
 	def contractDetails(self, reqId, desc):
 		''' Obtain contract ID '''
 		self.conid = desc.contract.conId
+		# self.exchange = desc.contract.exchange
+		print(desc.validExchanges)
 
 	@iswrapper
 	def tickByTickMidPoint(self, reqId, time, midpoint):
@@ -78,9 +82,10 @@ class MarketReader(EWrapper, EClient):
 		''' Provide strike prices and expiration dates '''
 
 		# Save expiration dates and strike prices
-		self.exchange = exchange
-		self.expirations = expirations
-		self.strikes = strikes
+		if exchange == 'SMART':
+			self.exchange = exchange
+			self.expirations = expirations
+			self.strikes = strikes
 
 	@iswrapper
 	def securityDefinitionOptionParameterEnd(self, reqId):
@@ -88,31 +93,37 @@ class MarketReader(EWrapper, EClient):
 
 		# Find strike price closest to current price
 		self.strikes = sorted(self.strikes)
-		min_dist = 99999.0
-		for i, strike in enumerate(self.strikes):
-			if strike - self.current_price < min_dist:
-				min_dist = abs(strike - self.current_price)
-				self.atm_index = i
-		self.atm_price = self.strikes[self.atm_index]
+		# min_dist = 99999.0
+		# for i, strike in enumerate(self.strikes):
+		# 	if strike - self.current_price < min_dist:
+		# 		min_dist = abs(strike - self.current_price)
+		# 		self.atm_index = i
+		# self.atm_price = self.strikes[self.atm_index]
 
-		# Limit strike prices to +7/-7 around ATM
-		front = self.atm_index - 7
-		back = len(self.strikes) - (self.atm_index + 7)
-		if front > 0:
-			del self.strikes[:front]
-		if back > 0:
-			del self.strikes[-(back-1):]
+		# # Limit strike prices to +7/-7 around ATM
+		# front = self.atm_index - 7
+		# back = len(self.strikes) - (self.atm_index + 7)
+		# if front > 0:
+		# 	del self.strikes[:front]
+		# if back > 0:
+		# 	del self.strikes[-(back-1):]
 
-		# Find an expiration date just over a month away
-		self.expirations = sorted(self.expirations)
-		for date in self.expirations:
-			exp_date = datetime.strptime(date, '%Y%m%d')
-			current_date = datetime.now()
-			interval = exp_date - current_date
-			if interval.days > 21:
-				self.expiration = date
-				print('Expiration: {}'.format(self.expiration))
-				break
+		# # Find an expiration date just over a month away
+		# self.expirations = sorted(self.expirations)
+		# for date in self.expirations:
+		# 	exp_date = datetime.strptime(date, '%Y%m%d')
+		# 	current_date = datetime.now()
+		# 	interval = exp_date - current_date
+		# 	if interval.days > 21:
+		# 		self.expiration = date
+		# 		print('Expiration: {}'.format(self.expiration))
+		# 		# break
+
+		## aggregate option details to a neat graph
+		# if self.exchange = 'SMART':
+		print('called')
+		print(self.exchange, self.expirations, self.strikes)
+
 
 	@iswrapper
 	def tickPrice(self, req_id, field, price, attribs):
@@ -158,12 +169,13 @@ def read_option_chain(client, ticker):
 	contract.currency = 'USD'
 	client.reqContractDetails(0, contract)
 	time.sleep(2)
+	print(client.conid)
 
 	# Get the current price of the stock
 	print('get tick data')
 	client.reqTickByTickData(1, contract, "MidPoint", 1, True)
 	time.sleep(4)
-
+	print('current_price: ' + str(client.current_price) + '\n')
 	# Request strike prices and expirations
 	print('get strike prices')
 	if client.conid:
@@ -176,27 +188,30 @@ def read_option_chain(client, ticker):
 		
 	# Create contract for stock option
 	req_id = 3
-	if client.strikes:
-		for strike in client.strikes:
-			client.chain[strike] = {}
-			for right in ['C', 'P']:
+	client.reqMarketDataTypes(4)
+	# if client.strikes:
+	# 	for strike in client.strikes:
+	# 		print('strike price:' + str(strike))
+	# 		print(client.chain)
+	# 		client.chain[strike] = {}
+	# 		for right in ['C', 'P']:
+	# 			print(right)
+	# 			# Add to the option chain
+	# 			client.chain[strike][right] = {}
+	# 			# Define the option contract
+	# 			contract.secType = 'OPT'
+	# 			contract.right = right
+	# 			contract.strike = strike
+	# 			contract.exchange = client.exchange
+	# 			contract.lastTradeDateOrContractMonth = client.expiration
 
-				# Add to the option chain
-				client.chain[strike][right] = {}
-				# Define the option contract
-				contract.secType = 'OPT'
-				contract.right = right
-				contract.strike = strike
-				contract.exchange = client.exchange
-				contract.lastTradeDateOrContractMonth = client.expiration
-
-				# Request option data
-				client.reqMktData(req_id, contract,
-					'100', False, False, [])
-				req_id += 1
-	else:
-		print('Failed to access strike prices')
-		exit()
+	# 			# Request option data
+	# 			client.reqMktData(req_id, contract,
+	# 				'100', False, False, [])
+	# 			req_id += 1
+	# else:
+	# 	print('Failed to access strike prices')
+	# 	exit()
 	print('b')
 	time.sleep(5)
 
