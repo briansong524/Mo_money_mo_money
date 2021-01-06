@@ -55,7 +55,7 @@ def main(config):
 		app.start_historicalBar(reqId = i+1, 
 								  contract = contract, 
 								  durationStr = "1 W", 
-								  barSizeSetting = "5 secs"
+								  barSizeSetting = "10 secs"
 								 )
 
 

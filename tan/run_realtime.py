@@ -1,5 +1,15 @@
 from utils import *
 import time
+import argparse
+
+
+parser = argparse.ArgumentParser()
+
+
+parser.add_argument(
+	'--debug', type=bool, default=False,
+	help = 'Config file for all configuration info')
+
 
 def main():
 	try:
@@ -12,11 +22,12 @@ def main():
 		symbols = ['AAPL','TSLA','AMZN','GOOGL']
 		app = RealTimeTickApp()
 		app.connect("127.0.0.1", 7497, 1)
-		app.mysqlConfig(conn_cred)
+		if not debug:
+			app.mysqlConfig(conn_cred)
 		for i in range(len(symbols)):
 			# try:
 			contract = basicContract(symbols[i])
-			app.start_reqRealTimeBars(i+1,contract,5,'TRADES',0,[]) # 1 for rth, 0 for extended
+			app.start_reqRealTimeBars(i+1,contract,10,'TRADES',0,[]) # 1 for rth, 0 for extended
 			# except Exception as e:
 			# 	print('Error with ' + str(symbols[i]) + ': ' + str(e))
 			# 	app.reset()  # clear out any prior socket connections/issues

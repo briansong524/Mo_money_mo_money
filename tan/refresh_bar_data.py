@@ -307,7 +307,7 @@ def update(config, symbol):
 	ibcontract.primaryExchange = "NASDAQ"
 	resolved_ibcontract=app.resolve_ib_contract(ibcontract)
 	# print(resolved_ibcontract)
-	historic_data = app.get_IB_historical_data(resolved_ibcontract, durationStr = "1 W", barSizeSetting = "5 secs")
+	historic_data = app.get_IB_historical_data(resolved_ibcontract, durationStr = "1 W", barSizeSetting = "10 secs")
 	print('pulled historical data. converting data to something mysql expects')
 	df = pd.DataFrame(historic_data, columns = ['datetime','open','high','low','close','volume'])
 	df['symbol'] = symbol
@@ -336,8 +336,8 @@ def update(config, symbol):
 	# cursor.executemany(query, list_vals)
 	# db_conn_close()
 	print('done updating')
-	app.conn.disconnect()
-	app.done = True
+	# app.conn.disconnect()
+	# app.done = True
 	sys.exit()
 
 if __name__ == '__main__':
