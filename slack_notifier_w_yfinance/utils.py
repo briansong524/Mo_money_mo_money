@@ -4,8 +4,13 @@ import numpy as np
 
 import pymysql as MySQLdb
 
+import requests
 import time
 from datetime import datetime
+
+import logging
+from logging.handlers import RotatingFileHandler
+
 
 def convert_dt_to_epoch(x):
     # converting the New York (UTC-5) to epoch
@@ -51,3 +56,64 @@ def db_conn_close(dbconn, cursor):
 	dbconn.commit()
 	cursor.close()
 	dbconn.close()
+
+def send_message_slack(slack_hook, myobj):
+	try:
+		requests.post(slack_hook, json = myobj)
+	except Exception as e:
+		print('request failed for some reason, probably internet connection lost. not sending message to slack')
+
+
+
+def calculate_rsi(val, prevU = 0, prevD = 0, n = 9):
+	if val > 0:
+		avgU = (prevU*(n-1) + val) / n
+		avgD = prevD*((n-1)/n)
+	else:
+		avgU = prevU*((n-1)/n)
+		avgD = (prevD*(n-1) - val) / n
+		
+	rs = avgU / (avgD + 1e-5)
+	rsi = 100.0 - 100.0 / (1 + rs)
+	return rsi, avgU, avgD
+
+
+
+def global_logger_init(work_dir,add_ = ''):
+
+	# global logger
+	# global handler
+	# global console_handler
+	############# logger config ###########
+	#logging.config.dictConfig({
+	#  'version': 1,
+	# 'disable_existing_loggers': True,
+	#})
+
+	# Remove all handlers associated with the root logger object.
+	# for handler in logging.root.handlers[:]:
+	# 		logging.root.removeHandler(handler)
+	try:
+		handler_log_file = work_dir + '/logger.log'
+		handler = RotatingFileHandler(handler_log_file, maxBytes=10485760, backupCount=3)
+		handler.setLevel(logging.DEBUG)
+
+		formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+		handler.setFormatter(formatter)
+
+		logger.addHandler(handler)
+	except Exception as err:
+		print(err)
+	return logger, handler
+
+
+def global_logger_cleanup(logger, handler, add_ = ''):
+	# global handler
+	handler.close()
+	logger.removeHandler(handler)
+	log = logging.getLogger('utils_logger' + add_)
+	handlers = list(log.handlers)
+	for handler in handlers:
+		 log.removeHandler(handler)
+		 handler.flush()
+		 handler.close()

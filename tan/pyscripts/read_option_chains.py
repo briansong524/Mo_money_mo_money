@@ -5,7 +5,6 @@ from ibapi.contract import Contract
 from ibapi.ticktype import TickTypeEnum
 from threading import Thread
 import queue
-import json
 
 class MarketReader(EWrapper, EClient):
 	''' Serves as the client and the wrapper '''
@@ -48,20 +47,18 @@ class MarketReader(EWrapper, EClient):
 	# 	''' Called in response to reqRealTimeBars '''
 	# 	self.current_price = close
 	# 	print('realtimeBar - Opening price: {}'.format(open))
-
-	# @iswrapper
-	# def realtimeBar(self, reqId, time:int, open_: float, high: float, 
-	# 					low: float, close: float, volume: int, wap: float, 
-	# 					count: int):
-	# 	self.current_price = close
-	# 	print('got realtime bar data')
+	@iswrapper
+	def realtimeBar(self, reqId, time:int, open_: float, high: float, 
+						low: float, close: float, volume: int, wap: float, 
+						count: int):
+		self.current_price = close
+		print('got realtime bar data')
 
 	@iswrapper
 	def historicalData(self, reqId, bar):
 		''' Called in response to reqHistoricalData '''
-		# print('historicalData - Close price: {}'
-		# 	.format(bar.close))
-		self.current_price = bar.close
+		print('historicalData - Close price: {}'
+			.format(bar.close))
 
 	@iswrapper
 	def fundamentalData(self, reqId, data):
@@ -92,6 +89,7 @@ class MarketReader(EWrapper, EClient):
 		''' Provide strike prices and expiration dates '''
 
 		# Save expiration dates and strike prices
+		# if exchange == 'SMART':
 		self.exchange = exchange
 		self.expirations = expirations
 		self.strikes = strikes
@@ -109,6 +107,7 @@ class MarketReader(EWrapper, EClient):
 			if strike - self.current_price < min_dist:
 				min_dist = abs(strike - self.current_price)
 				self.atm_index = i
+				print('new min_dist: ' + str(strike))
 		self.atm_price = self.strikes[self.atm_index]
 
 		# Limit strike prices to +7/-7 around ATM
@@ -131,15 +130,21 @@ class MarketReader(EWrapper, EClient):
 				print('Expiration: {}'.format(self.expiration))
 				break
 
+		# aggregate option details to a neat graph
+		# if self.exchange = 'SMART':
+		# print('called')
+		# print(self.exchange, self.expirations, self.strikes)
+
+
 	@iswrapper
 	def tickPrice(self, req_id, field, price, attribs):
 		''' Provide option's ask price/bid price '''
 
 		if (field != 1 and field != 2) or price == -1.0:
-			# print('price skipped')
-			# print(field,price)
+			print('skipped')
+			print(field,price)
 			return
-
+		
 		# Determine the strike price and right
 		strike = self.strikes[(req_id - 3)//2]
 		right = 'C' if req_id & 1 else 'P'
@@ -149,17 +154,15 @@ class MarketReader(EWrapper, EClient):
 			self.chain[strike][right]['bid_price'] = price
 		elif field == 2:
 			self.chain[strike][right]['ask_price'] = price
-		# print(field,price)
+		print(field,price)
 
 	@iswrapper
 	def tickSize(self, req_id, field, size):
 		''' Provide option's ask size/bid size '''
 
 		if (field != 0 and field != 3) or size == 0:
-			# print('size skipped')
-			# print(field,size)
 			return
-
+		
 		# Determine the strike price and right
 		strike = self.strikes[(req_id - 3)//2]
 		right = 'C' if req_id & 1 else 'P'
@@ -170,19 +173,6 @@ class MarketReader(EWrapper, EClient):
 		elif field == 3:
 			self.chain[strike][right]['ask_size'] = size
 
-	# @iswrapper
-	# def tickOptionComputation(self, reqId, tickType,
-	# 	impliedVol:float, delta:float, optPrice:float, pvDividend:float,
-	# 	gamma:float, vega:float, theta:float, undPrice:float):
-
-	# 	strike = self.strikes[((reqId - 100) - 3)//2]
-	# 	right = 'C' if reqId & 1 else 'P' # odds are C, evens are P
-	# 	self.chain[strike][right]['IV'] = impliedVol
-	# 	self.chain[strike][right]['delta'] = delta
-	# 	self.chain[strike][right]['gamma'] = gamma
-	# 	self.chain[strike][right]['vega'] = vega
-	# 	self.chain[strike][right]['theta'] = theta
-
 def read_option_chain(client, ticker):
 	print('get contract details')
 	# Define a contract for the underlying stock
@@ -192,19 +182,16 @@ def read_option_chain(client, ticker):
 	contract.exchange = 'SMART'
 	contract.currency = 'USD'
 	client.reqContractDetails(0, contract)
-	time.sleep(5)
+	time.sleep(2)
 	print(client.conid)
 
 	# Get the current price of the stock
 	print('get tick data')
 	# client.reqTickByTickData(1, contract, "MidPoint", 1, True)
-	# client.reqRealTimeBars(1, contract, 5,'TRADES',0,[])
-	now = datetime.now().strftime("%Y%m%d, %H:%M:%S")
-	client.reqHistoricalData(1, contract, now, '1 D', '1 day',
-		'MIDPOINT', False, 1, False, [])
-	time.sleep(2)
+	client.reqRealTimeBars(1, contract, 5,'TRADES',0,[])
+	time.sleep(30)
 	# client.cancelTickByTickData(1)
-	# client.cancelHistoricalData(1)
+	client.cancelRealTimeBars(1)
 	print('current_price: ' + str(client.current_price) + '\n')
 	# Request strike prices and expirations
 	print('get strike prices')
@@ -218,10 +205,10 @@ def read_option_chain(client, ticker):
 
 	# Create contract for stock option
 	req_id = 3
-	# client.reqMarketDataType(1)
+	client.reqMarketDataType(1)
 	if client.strikes:
 		for strike in client.strikes:
-			# print('strike price:' + str(strike))
+			print('strike price:' + str(strike))
 			client.chain[strike] = {}
 			for right in ['C', 'P']:
 				# Add to the option chain
@@ -230,33 +217,35 @@ def read_option_chain(client, ticker):
 				contract.secType = 'OPT'
 				contract.right = right
 				contract.strike = strike
-				contract.exchange = client.exchange
+				contract.exchange = 'SMART'
 				contract.lastTradeDateOrContractMonth = client.expiration
-				# print(contract)
+				print(contract)
 				# Request option data
-				# refer to https://interactivebrokers.github.io/tws-api/tick_types.html for generic tick types
 				client.reqMktData(req_id, contract,
 					'100', False, False, [])
-				# iv_req_id = 100 + req_id
-				# client.calculateImpliedVolatility(iv_req_id, contract, 
-					# strike, client.current_price, [])
 				req_id += 1
 	else:
 		print('Failed to access strike prices')
 		exit()
+	print('b')
+	time.sleep(5)
+
+	# # Remove empty elements
+	# for strike in client.chain:
+	# 	if (client.chain[strike]['C'] == {}) or (client.chain[strike]['P'] == {}):
+	# 		client.chain.pop(strike)
 	return client.chain, client.atm_price
 
 
 from datetime import datetime
 import time
 import traceback
-import sys
 
 def main():
 	try:
 		# Create the client and connect to TWS
 		client = MarketReader('127.0.0.1', 7497, 0)
-		# client.disconnect(); return
+
 		# Request the current time
 		# con = Contract()
 		# con.symbol = 'AAPL'
@@ -273,32 +262,24 @@ def main():
 		# # Request current bars
 		# client.reqRealTimeBars(2, con, 5, 'MIDPOINT', True, [])
 
-		# Request historical bars
+		# # Request historical bars
 		# now = datetime.now().strftime("%Y%m%d, %H:%M:%S")
-		# client.reqHistoricalData(3, con, now, '1 D', '1 day',
+		# client.reqHistoricalData(3, con, now, '2 w', '1 day',
 		# 	'MIDPOINT', False, 1, False, [])
 
 		# # Request fundamental data
 		# client.reqFundamentalData(4, con, 'ReportSnapshot', [])
 
-		chains, atm_prices = read_option_chain(client, 'AAPL')
-		# # Remove empty elements
-		# for strike in chains:
-		# 	if (chains[strike]['C'] == {}) or (chains[strike]['P'] == {}):
-		# 		del chains[strike]
+		chains, atm_prices = read_option_chain(client, 'MSFT')
 		print('chains')
-		printable_chain = json.dumps(chains, indent=2)
-		print(printable_chain)
+		print(chains)
 		print('\n\n')
 		print('atm prices')
 		print(atm_prices)
-		time.sleep(2)
+		time.sleep(5)
 		client.disconnect()
 	except Exception as e:
-		type_, value_, traceback_ = sys.exc_info()
-		tb = traceback.format_exception(type_, value_, traceback_)
-		tb = '\n' + ' '.join(tb)
-		print(tb)
+		print(e)
 
 if __name__ == "__main__":
 	main()
