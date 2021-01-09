@@ -135,7 +135,7 @@ def main(config):
 			myobj = {"text":'something happened with ' + str(symbol) + ": " + str(e)}
 			send_message_slack(slack_hook, myobj)
 
-	# send_message_slack(slack_hook,{'text':'sent'})
+	send_message_slack(slack_hook,{'text':'sent'})
 	
 if __name__ == '__main__':
 	# logger = ''
