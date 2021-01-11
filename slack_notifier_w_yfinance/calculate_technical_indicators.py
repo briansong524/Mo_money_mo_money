@@ -122,12 +122,16 @@ def main(config):
 			# bool1 = (rsi <= 20) | (rsi >= 80)
 			bool1 = True
 			if bool1:
-				text = symbol + ' RSI' + str(n) + ': ' + str(round(rsi,2))
-				curr = datetime.now()
-				curr_pst = curr.astimezone(pytz.timezone('America/Los_Angeles'))
-				localFormat = "%Y-%m-%d %H:%M:%S"
-				curr_pst = curr_pst.strftime(localFormat)
-				text += ' on ' + str(curr_pst) 
+				text = symbol + ' RSI' + str(n)  + '(' + str(interval)  + 
+				       ' bars)' + ': ' + str(round(rsi,2))
+				## add time to the message
+				# curr = datetime.now()
+				# curr_pst = curr.astimezone(pytz.timezone('America/Los_Angeles'))
+				# localFormat = "%Y-%m-%d %H:%M:%S"
+				# curr_pst = curr_pst.strftime(localFormat)
+				# text += ' on ' + str(curr_pst) 
+
+
 
 				myobj = {"text":text}
 				send_message_slack(slack_hook, myobj)
