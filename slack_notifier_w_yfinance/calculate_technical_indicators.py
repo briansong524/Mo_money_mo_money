@@ -97,8 +97,8 @@ def main(config):
 		data = data[data[(symbol,'Volume')] != 0] # this maybe overkill
 	latest_dt = data.index[-1] # index contains datetime for multi symbols
 	latest_dt = latest_dt.astimezone(pytz.timezone('America/Los_Angeles'))
-	localFormat = "%Y-%m-%d %H:%M:%S"
-	latest_dt = latest_dt.strftime(localFormat)
+	# localFormat = "%Y-%m-%d %H:%M:%S"
+	# latest_dt = latest_dt.strftime(localFormat)
 	# logger.info('last datetime: ' + str(latest_dt))
 
 	# calculate technical indicators
@@ -119,10 +119,15 @@ def main(config):
 
 			print('RSI: ' + str(rsi))
 			# send slack message based on rsi
-			bool1 = (rsi <= 20) | (rsi >= 80)
+			# bool1 = (rsi <= 20) | (rsi >= 80)
+			bool1 = True
 			if bool1:
 				text = symbol + ' RSI' + str(n) + ': ' + str(round(rsi,2))
-				text += ' on ' + str(datetime.now()) 
+				curr = datetime.now()
+				curr_pst = curr.astimezone(pytz.timezone('America/Los_Angeles'))
+				localFormat = "%Y-%m-%d %H:%M:%S"
+				curr_pst = curr_pst.strftime(localFormat)
+				text += ' on ' + str(curr_pst) 
 
 				myobj = {"text":text}
 				send_message_slack(slack_hook, myobj)
