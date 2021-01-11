@@ -153,17 +153,13 @@ def main(config):
 				# curr_pst = curr_pst.strftime(localFormat)
 				# text += ' on ' + str(curr_pst) 
 
-
-
 				myobj = {"text":text}
 				send_message_slack(slack_hook, myobj)
 
 				## add to slack_gate
 				if symbol not in slack_gate:
-					slack_gate[symbol] = {interval}
+					slack_gate[symbol] = {}
 				slack_gate[symbol][interval] = round(time.time(),2)
-				with open('slack_gate.json','w') as f:
-					json.dump(slack_gate, f)
 
 		except Exception as e:
 			type_, value_, traceback_ = sys.exc_info()
@@ -171,15 +167,17 @@ def main(config):
 			tb = '\n' + ' '.join(tb)
 			# logger.error('\n' + ' '.join(tb))
 			# logger.error('exception occured %s',str(e))
-			myobj = {"text":'something happened with ' + str(symbol) + ": " + str(e)}
+			myobj = {"text":'something happened with ' + str(symbol) + ": " + str(tb)}
 			send_message_slack(slack_hook, myobj)
-
-	send_message_slack(slack_hook,{'text':'sent'})
+	
+	with open('slack_gate.json','w') as f:
+		json.dump(slack_gate, f)
+	# send_message_slack(slack_hook,{'text':'sent'})
 
 
 def send_slack_gate(slack_gate, symbol, interval):
 	try:
-		last_epoch = slack_gate[symbol][interval]
+		last_epoch = float(slack_gate[symbol][interval])
 	except:
 		return True
 
