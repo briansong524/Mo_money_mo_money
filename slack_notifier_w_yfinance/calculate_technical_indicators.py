@@ -38,10 +38,11 @@ Refer to [1] for documentation
 [2] https://school.stockcharts.com/doku.php?id=technical_indicators:relative_strength_index_rsi
 '''
 
-import sys
+import os,sys
 import argparse
 import json
 import traceback
+import time
 
 import yfinance as yf
 import pytz
@@ -76,6 +77,14 @@ parser.add_argument(
 
 
 def main(config):
+	
+	main_dir = os.path.dirname(os.path.realpath(__file__))
+	os.chdir(main_dir)
+	if os.path.exists('slack_gate.json'):
+		with open('slack_gate.json','r') as f:
+			slack_gate = json.load(f)
+	else:
+		slack_gate = {}
 	
 	# initialize
 	# logger,handler = global_logger_init('/home/minx/Documents/logs/')
@@ -132,7 +141,10 @@ def main(config):
 
 			# bool1 = (rsi <= oversold) | (rsi >= overbought)
 			bool1 = True
-			if bool1:
+			bool2 = send_slack_gate(slack_gate,symbol,interval)
+
+			if bool1 & bool2:
+
 				text = '(' + status + ') ' + symbol + ' RSI' + str(n)  + ' (' + str(interval) + ' bars)' + ': ' + str(round(rsi,2))
 				## add time to the message
 				# curr = datetime.now()
@@ -145,6 +157,14 @@ def main(config):
 
 				myobj = {"text":text}
 				send_message_slack(slack_hook, myobj)
+
+				## add to slack_gate
+				if symbol not in slack_gate:
+					slack_gate[symbol] = {interval}
+				slack_gate[symbol][interval] = round(time.time(),2)
+				with open('slack_gate.json','w') as f:
+					json.dump(slack_gate, f)
+
 		except Exception as e:
 			type_, value_, traceback_ = sys.exc_info()
 			tb = traceback.format_exception(type_, value_, traceback_)
@@ -155,7 +175,20 @@ def main(config):
 			send_message_slack(slack_hook, myobj)
 
 	send_message_slack(slack_hook,{'text':'sent'})
-	
+
+
+def send_slack_gate(slack_gate, symbol, interval):
+	try:
+		last_epoch = slack_gate[symbol][interval]
+	except:
+		return True
+
+	silence_time = 600 # 10 minutes
+	if time.time() - last_epoch > silence_time:
+		return True
+	else:
+		return False
+
 if __name__ == '__main__':
 	# logger = ''
 	# handler = ''
