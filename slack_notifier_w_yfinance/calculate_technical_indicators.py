@@ -139,8 +139,8 @@ def main(config):
 			else:
 				status = 'Normal'
 
-			# bool1 = (rsi <= oversold) | (rsi >= overbought)
-			bool1 = True
+			bool1 = (rsi <= oversold) | (rsi >= overbought)
+			# bool1 = True
 			bool2 = send_slack_gate(slack_gate,symbol,interval)
 
 			if bool1 & bool2:
