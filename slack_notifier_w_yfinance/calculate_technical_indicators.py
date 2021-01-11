@@ -119,10 +119,21 @@ def main(config):
 
 			print('RSI: ' + str(rsi))
 			# send slack message based on rsi
-			# bool1 = (rsi <= 20) | (rsi >= 80)
+			overbought = 80
+			oversold = 20
+
+			## state of the stock
+			if rsi <= oversold:
+				status = 'Oversold'
+			elif rsi >= overbought:
+				status = 'Overbought'
+			else:
+				status = 'Normal'
+
+			# bool1 = (rsi <= oversold) | (rsi >= overbought)
 			bool1 = True
 			if bool1:
-				text = symbol + ' RSI' + str(n)  + '(' + str(interval) + ' bars)' + ': ' + str(round(rsi,2))
+				text = '(' + status + ') ' + symbol + ' RSI' + str(n)  + ' (' + str(interval) + ' bars)' + ': ' + str(round(rsi,2))
 				## add time to the message
 				# curr = datetime.now()
 				# curr_pst = curr.astimezone(pytz.timezone('America/Los_Angeles'))
