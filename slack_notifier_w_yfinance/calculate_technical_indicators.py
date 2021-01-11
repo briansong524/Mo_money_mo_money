@@ -122,8 +122,7 @@ def main(config):
 			# bool1 = (rsi <= 20) | (rsi >= 80)
 			bool1 = True
 			if bool1:
-				text = symbol + ' RSI' + str(n)  + '(' + str(interval)  + 
-				       ' bars)' + ': ' + str(round(rsi,2))
+				text = symbol + ' RSI' + str(n)  + '(' + str(interval) + ' bars)' + ': ' + str(round(rsi,2))
 				## add time to the message
 				# curr = datetime.now()
 				# curr_pst = curr.astimezone(pytz.timezone('America/Los_Angeles'))
