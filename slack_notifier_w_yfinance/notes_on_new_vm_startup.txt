@@ -1,0 +1,24 @@
+# ubuntu 20.04 VM on GCP
+
+sudo apt-get update
+sudo apt-get install nano
+sudo apt-get install cron
+sudo apt-get install git
+sudo apt-get install python3-pip
+cd Mo_money_mo_money/slack_notifier_w_yfinance
+pip3 install -r requirements.txt
+nano config.conf
+{
+	"slack_webhook":"https://hooks.slack.com/services/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",
+	"symbols":"AAPL,AMZN,GOOGL,TSLA",
+	"period":"1mo",
+	"interval":"15m",
+	"rsi_bars":"14"
+}
+
+add --config /home/ponzistock1/config.conf to all lines in cron_calculate.sh
+
+crontab -e
+30-55/5 14 * * * source ~/Mo_money_mo_money/slack_notifier_w_yfinance/cron_calculate.sh
+*/5 15-20 * * * source ~/Mo_money_mo_money/slack_notifier_w_yfinance/cron_calculate.sh
+
