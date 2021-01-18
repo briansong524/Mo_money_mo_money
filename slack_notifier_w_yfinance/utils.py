@@ -11,6 +11,48 @@ from datetime import datetime
 import logging
 from logging.handlers import RotatingFileHandler
 
+from sklearn.linear_model import LinearRegression
+
+## regular functions
+
+def global_logger_init(work_dir,add_ = ''):
+
+	# global logger
+	# global handler
+	# global console_handler
+	############# logger config ###########
+	#logging.config.dictConfig({
+	#  'version': 1,
+	# 'disable_existing_loggers': True,
+	#})
+
+	# Remove all handlers associated with the root logger object.
+	# for handler in logging.root.handlers[:]:
+	# 		logging.root.removeHandler(handler)
+	try:
+		handler_log_file = work_dir + '/logger.log'
+		handler = RotatingFileHandler(handler_log_file, maxBytes=10485760, backupCount=3)
+		handler.setLevel(logging.DEBUG)
+
+		formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+		handler.setFormatter(formatter)
+
+		logger.addHandler(handler)
+	except Exception as err:
+		print(err)
+	return logger, handler
+
+
+def global_logger_cleanup(logger, handler, add_ = ''):
+	# global handler
+	handler.close()
+	logger.removeHandler(handler)
+	log = logging.getLogger('utils_logger' + add_)
+	handlers = list(log.handlers)
+	for handler in handlers:
+		 log.removeHandler(handler)
+		 handler.flush()
+		 handler.close()
 
 def convert_dt_to_epoch(x):
     # converting the New York (UTC-5) to epoch
@@ -64,6 +106,14 @@ def send_message_slack(slack_hook, myobj):
 		print('request failed for some reason, probably internet connection lost. not sending message to slack')
 
 
+## technical functions
+
+def simple_lr(x,y):
+    lr = LinearRegression(n_jobs = -1)
+    lr.fit(x,y)
+    
+    return lr, lr.coef_[0], lr.intercept_
+
 
 def calculate_rsi(val, prevU = 0, prevD = 0, n = 9):
 	if val > 0:
@@ -78,42 +128,31 @@ def calculate_rsi(val, prevU = 0, prevD = 0, n = 9):
 	return rsi, avgU, avgD
 
 
+def calculate_ema(new_val, last_ema, interval, smoothing):
+    x = new_val*(smoothing / (1 + interval)) + last_ema*(1-(smoothing / (1 + interval)))
+    return x
 
-def global_logger_init(work_dir,add_ = ''):
+def calculate_macd(val, last_long_ema, last_short_ema,
+                   long_int = 26, short_int = 12, smoothing = 2):
+    
+    long_ema = calculate_ema(val, last_long_ema, long_int, smoothing)
+    short_ema = calculate_ema(val, last_short_ema, short_int, smoothing)
+    macd = short_ema - long_ema
+    return macd, long_ema, short_ema
 
-	# global logger
-	# global handler
-	# global console_handler
-	############# logger config ###########
-	#logging.config.dictConfig({
-	#  'version': 1,
-	# 'disable_existing_loggers': True,
-	#})
-
-	# Remove all handlers associated with the root logger object.
-	# for handler in logging.root.handlers[:]:
-	# 		logging.root.removeHandler(handler)
-	try:
-		handler_log_file = work_dir + '/logger.log'
-		handler = RotatingFileHandler(handler_log_file, maxBytes=10485760, backupCount=3)
-		handler.setLevel(logging.DEBUG)
-
-		formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-		handler.setFormatter(formatter)
-
-		logger.addHandler(handler)
-	except Exception as err:
-		print(err)
-	return logger, handler
-
-
-def global_logger_cleanup(logger, handler, add_ = ''):
-	# global handler
-	handler.close()
-	logger.removeHandler(handler)
-	log = logging.getLogger('utils_logger' + add_)
-	handlers = list(log.handlers)
-	for handler in handlers:
-		 log.removeHandler(handler)
-		 handler.flush()
-		 handler.close()
+def categorize_trend(x, high_val, low_val, as_color = False):
+    if x >= high_val:
+        if as_color:
+            return 'g'
+        else:
+            return 'high'
+    elif x <= low_val:
+        if as_color:
+            return 'r'
+        else:
+            return 'low'
+    else:
+        if as_color:
+            return 'y'
+        else:
+            return 'normal'
