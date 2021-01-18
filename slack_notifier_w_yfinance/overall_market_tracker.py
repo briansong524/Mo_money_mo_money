@@ -156,7 +156,7 @@ def main(config):
 		send_message_slack(slack_hook, myobj)
 
 	with open('last_status.txt','w') as f:
-		f.write(status, f)
+		f.write(status)
 	# send_message_slack(slack_hook,{'text':'sent'})
 
 
