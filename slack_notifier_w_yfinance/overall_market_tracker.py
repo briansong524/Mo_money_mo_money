@@ -155,7 +155,7 @@ def main(config):
 		myobj = {"text":'something happened with ' + str(symbol) + ": " + str(tb)}
 		send_message_slack(slack_hook, myobj)
 
-	with open('last_status.txt','w') as f:
+	with open('overall_market_last_status.txt','w') as f:
 		f.write(status)
 	# send_message_slack(slack_hook,{'text':'sent'})
 
