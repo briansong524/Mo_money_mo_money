@@ -82,12 +82,12 @@ def main(config):
 
 	tickers = ' '.join(symbols)
 	start_date = str((datetime.now() - timedelta(days=59)).date())
-	data = yf.download(tickers = tickers, 
+	data_raw = yf.download(tickers = tickers, 
 		start = start_date, interval = interval, group_by = 'ticker')
 	# dropping incomplete data
-	data = data.dropna() 
+	data_raw = data_raw.dropna() 
 	for symbol in symbols:
-		data = data[data[(symbol,'Volume')] != 0] # this maybe overkill
+		data_raw = data_raw[data_raw[(symbol,'Volume')] != 0] # this maybe overkill
 
 
 	# # dropping incomplete data
@@ -97,78 +97,77 @@ def main(config):
 
 	# calculate technical indicators
 
+	for symbol in symbols:
+		try:
+			data = data_raw[symbol].copy().reset_index()
+			data['Midpoint'] = data[['Open','Close']].mean(axis = 1)
+			data['pos'] = data['Datetime'].map(lambda x: (x - data['Datetime'].iloc[0]).total_seconds() / 60 / 60) # for linear regression
 
-	try:
-		data['Upper'] = data[['Open','Close']].max(axis = 1)
-		data['Lower'] = data[['Open','Close']].min(axis = 1)
-		data['Midpoint'] = data[['Open','Close']].mean(axis = 1)
-		data['pos'] = data['Datetime'].map(lambda x: (x - data['Datetime'].iloc[0]).total_seconds() / 60 / 60) # for linear regression
+			x = data['pos']
+			lr1, m, b = simple_lr(np.array(x).reshape(-1, 1), data['Midpoint'])
+			pred = lr1.predict(np.array(x).reshape(-1,1)) 
+			data['prop_dist_1'] = (pred - data['Midpoint']).abs() / pred
+			cutoff = np.percentile(data['prop_dist_1'], 65)
+			cutoff2 = np.percentile(data['prop_dist_1'], 50)
+			df = data[data['prop_dist_1'] < cutoff].copy()
+			x = np.array(df['pos']).reshape(-1,1)
+			lr2, m, b = simple_lr(x, df['Midpoint'])
+			pred = lr2.predict(np.array(x).reshape(-1,1))
+			df['prop_dist_2'] = (pred - df['Midpoint']).abs() / df['Midpoint']
+			df2 = df[df['prop_dist_2'] < cutoff2].copy()
+			x = np.array(df2['pos']).reshape(-1,1)
+			lr3, m, b = simple_lr(x, df2['Midpoint'])
+			pred = lr3.predict(data['pos'].values.reshape(-1,1))
+			data['epsilon'] = data['Midpoint'] - pred
+			epsilon = data['epsilon'].iloc[-1]
 
-		x = data['pos']
-		lr1, m, b = simple_lr(np.array(x).reshape(-1, 1), data['Midpoint'])
-		pred = lr1.predict(np.array(x).reshape(-1,1)) 
-		data['prop_dist_1'] = (pred - data['Midpoint']).abs() / pred
-		cutoff = np.percentile(data['prop_dist_1'], 65)
-		cutoff2 = np.percentile(data['prop_dist_1'], 50)
-		df = data[data['prop_dist_1'] < cutoff].copy()
-		x = np.array(df['pos']).reshape(-1,1)
-		lr2, m, b = simple_lr(x, df['Midpoint'])
-		pred = lr2.predict(np.array(x).reshape(-1,1))
-		df['prop_dist_2'] = (pred - df['Midpoint']).abs() / df['Midpoint']
-		df2 = df[df['prop_dist_2'] < cutoff2].copy()
-		x = np.array(df2['pos']).reshape(-1,1)
-		lr3, m, b = simple_lr(x, df2['Midpoint'])
-		pred = lr3.predict(data['pos'].values.reshape(-1,1))
-		data['epsilon'] = data['Midpoint'] - pred
-		epsilon = data['epsilon'].iloc[-1]
+			
+			rsi_list = []
+			n = 14
+			rows = data['Close'].values
+			# print(rows[-5:])
+			rows = rows[1:] - rows[:-1] # make prices to deltas
 
-		
-		rsi_list = []
-		n = 14
-		rows = data['Close'].values
-		# print(rows[-5:])
-		rows = rows[1:] - rows[:-1] # make prices to deltas
+			# initial calculation
+			vals = rows[:n]
+			prevU = np.sum(vals * (vals > 0).astype(int)) / n
+			prevD = -1 * np.sum(vals * (vals < 0).astype(int)) / n
 
-		# initial calculation
-		vals = rows[:n]
-		prevU = np.sum(vals * (vals > 0).astype(int)) / n
-		prevD = -1 * np.sum(vals * (vals < 0).astype(int)) / n
+			for i in range(n, len(rows)):
+			    rsi, prevU, prevD = calculate_rsi(rows[i], prevU, prevD, n)
 
-		for i in range(n, len(rows)):
-		    rsi, prevU, prevD = calculate_rsi(rows[i], prevU, prevD, n)
-
-		# initialize 
-		vals = data['Close'].values
-		smoothing = 2
-		long_int = 26; short_int = 12 # accepted norm of ema lengths for macd
-		long_ema = np.mean(vals[:long_int]) # simple average of first 26 values
-		short_ema = np.mean(vals[(long_int - short_int):long_int]) # simple average of last 12 values from 26th index
-
-
-		# measure macd
-		for i in range(long_int, len(vals)):
-		    macd, long_ema, short_ema = calculate_macd(vals[i], long_ema, short_ema, long_int, short_int, smoothing)
+			# initialize 
+			vals = data['Close'].values
+			smoothing = 2
+			long_int = 26; short_int = 12 # accepted norm of ema lengths for macd
+			long_ema = np.mean(vals[:long_int]) # simple average of first 26 values
+			short_ema = np.mean(vals[(long_int - short_int):long_int]) # simple average of last 12 values from 26th index
 
 
-		message, status, recommendation = market_status(macd, rsi, epsilon)
-		print(last_status, status)
+			# measure macd
+			for i in range(long_int, len(vals)):
+			    macd, long_ema, short_ema = calculate_macd(vals[i], long_ema, short_ema, long_int, short_int, smoothing)
 
-		if last_status != status:
 
-			text = 'Trend for ' + symbol + '\n'
-			text += 'Change in status:' + '\n'
-			text += message
-			myobj = {"text":text}
+			message, status, recommendation = market_status(macd, rsi, epsilon)
+			print(last_status, status)
+
+			if last_status != status:
+
+				text = 'Trend for ' + symbol + '\n'
+				text += 'Change in status:' + '\n'
+				text += message
+				myobj = {"text":text}
+				send_message_slack(slack_hook, myobj)
+
+		except Exception as e:
+			type_, value_, traceback_ = sys.exc_info()
+			tb = traceback.format_exception(type_, value_, traceback_)
+			tb = '\n' + ' '.join(tb)
+			# logger.error('\n' + ' '.join(tb))
+			# logger.error('exception occured %s',str(e))
+			myobj = {"text":'something happened with ' + str(symbol) + ": " + str(tb)}
 			send_message_slack(slack_hook, myobj)
-
-	except Exception as e:
-		type_, value_, traceback_ = sys.exc_info()
-		tb = traceback.format_exception(type_, value_, traceback_)
-		tb = '\n' + ' '.join(tb)
-		# logger.error('\n' + ' '.join(tb))
-		# logger.error('exception occured %s',str(e))
-		myobj = {"text":'something happened with ' + str(symbol) + ": " + str(tb)}
-		send_message_slack(slack_hook, myobj)
 
 	with open('overall_market_last_status.txt','w') as f:
 		f.write(status)
