@@ -80,11 +80,7 @@ def main(config):
 	
 	main_dir = os.path.dirname(os.path.realpath(__file__))
 	os.chdir(main_dir)
-	if os.path.exists('slack_gate.json'):
-		with open('slack_gate.json','r') as f:
-			slack_gate = json.load(f)
-	else:
-		slack_gate = {}
+
 	
 	# initialize
 	# logger,handler = global_logger_init('/home/minx/Documents/logs/')
@@ -94,6 +90,17 @@ def main(config):
 	period = str(config['period'])
 	interval = str(config['interval'])
 	info_dict = {}
+
+
+	# make slack gate file to repress redundant messages
+	new_instance = False
+	rsi_dict = {}
+	if os.path.exists('slack_gate.json'):
+		with open('slack_gate.json','r') as f:
+			slack_gate = json.load(f)
+	else:
+		slack_gate = {}
+		new_instance = True
 
 	# pull yfinance data
 
@@ -128,22 +135,31 @@ def main(config):
 
 			print('RSI: ' + str(rsi))
 			# send slack message based on rsi
-			overbought = 80
-			oversold = 20
 
 			## state of the stock
-			if rsi <= oversold:
-				status = 'Oversold'
-			elif rsi >= overbought:
-				status = 'Overbought'
-			else:
-				status = 'Normal'
+			def rsi_as_category(rsi):
+				overbought = 75
+				oversold = 30
 
-			bool1 = (rsi <= oversold) | (rsi >= overbought)
+				if rsi <= oversold:
+					status = 'Oversold'
+				elif rsi >= overbought:
+					status = 'Overbought'
+				else:
+					status = 'Normal'
+				return status
+
+			status = rsi_as_category(rsi)
+			# save rsi somewhere
+			rsi_dict[symbol] = {'rsi':str(round(rsi,2)), 'status':status}
+
+			# send to slack if conditions are met
+
+			bool1 = status in ['Oversold','Overbought']
 			# bool1 = True
 			bool2 = send_slack_gate(slack_gate,symbol,interval)
 
-			if bool1 & bool2:
+			if bool1 & bool2 & ~new_instance:
 
 				text = '(' + status + ') ' + symbol + ' RSI' + str(n)  + ' (' + str(interval) + ' bars)' + ': ' + str(round(rsi,2))
 				## add time to the message
@@ -168,8 +184,25 @@ def main(config):
 			# logger.error('\n' + ' '.join(tb))
 			# logger.error('exception occured %s',str(e))
 			myobj = {"text":'something happened with ' + str(symbol) + ": " + str(tb)}
-			send_message_slack(slack_hook, myobj)
-	
+			# send_message_slack(slack_hook, myobj)
+			print(myobj['text'])
+
+	# send a message if its the first time with new config
+	# regardless of rsi 
+
+	if new_instance:
+
+		rsi_text = ''
+		for i in rsi_dict.keys():
+			rsi_text += str(i) + ': ' + str(rsi_dict[i]['rsi']) + ' (' + str(rsi_dict[i]['status']) + ')\n'
+
+		text = 'New instance running for symbols: ' + str(config['symbols']) + '\n\n'
+		text += 'Current RSI(s):\n'
+		text += rsi_text
+		# print(text)
+		myobj = {"text":text}
+		send_message_slack(slack_hook, myobj)
+
 	with open('slack_gate.json','w') as f:
 		json.dump(slack_gate, f)
 	# send_message_slack(slack_hook,{'text':'sent'})

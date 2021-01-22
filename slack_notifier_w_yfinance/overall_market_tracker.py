@@ -68,6 +68,7 @@ def main(config):
 	n = int(config['rsi_bars'])
 	interval = str(config['interval'])
 	symbol = 'NDAQ'
+	status_dict = {'h':'high', 'n':'normal','l':'low'}
 
 	# pull yfinance data
 
@@ -142,7 +143,10 @@ def main(config):
 
 			text = 'Trend for ' + symbol + '\n'
 			text += 'Change in status:' + '\n'
-			text += message
+			text += 'MACD: ' + str(status_dict[last_status[0]]) + ' -> ' + str(status_dict[status[0]]) + '\n'
+			text += 'RSI: ' + str(status_dict[last_status[1]]) + ' -> ' + str(status_dict[status[1]]) + '\n'
+			text += 'Epsilon: ' + str(status_dict[last_status[2]]) + ' -> ' + str(status_dict[status[2]]) + '\n'
+			text += 'Recommendation: ' + str(message)
 			myobj = {"text":text}
 			send_message_slack(slack_hook, myobj)
 
