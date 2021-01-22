@@ -65,12 +65,6 @@ def main(config):
 	
 	main_dir = os.path.dirname(os.path.realpath(__file__))
 	os.chdir(main_dir)
-	if os.path.exists('ti_status.json'):
-		with open('ti_status.json','r') as f:
-			last_status = f.read()
-	else:
-		last_status = ''
-	
 	# initialize
 	# logger,handler = global_logger_init('/home/minx/Documents/logs/')
 	slack_hook = config['overall_market_webhook']
@@ -78,6 +72,17 @@ def main(config):
 	interval = str(config['interval'])
 	symbols = str(config['ti_symbols']).split(',')
 
+	# make slack gate file to repress redundant messages
+
+	new_instance = False
+	rsi_dict = {}
+	if os.path.exists('ti_status.json'):
+		with open('ti_status.json','r') as f:
+			last_status = f.read()
+	else:
+		last_status = ''
+		new_instance = True
+	
 	# pull yfinance data
 
 	tickers = ' '.join(symbols)
