@@ -146,7 +146,7 @@ def main(config):
 			text += 'MACD: ' + str(status_dict[last_status[0]]) + ' -> ' + str(status_dict[status[0]]) + '\n'
 			text += 'RSI: ' + str(status_dict[last_status[1]]) + ' -> ' + str(status_dict[status[1]]) + '\n'
 			text += 'Epsilon: ' + str(status_dict[last_status[2]]) + ' -> ' + str(status_dict[status[2]]) + '\n'
-			text += 'Recommendation: ' + str(message)
+			text += 'Note: ' + str(message)
 			myobj = {"text":text}
 			send_message_slack(slack_hook, myobj)
 

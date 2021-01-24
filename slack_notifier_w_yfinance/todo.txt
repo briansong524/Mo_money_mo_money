@@ -1,0 +1,9 @@
+todo:
+
+- create methods for some processes shared across multiple scripts
+- add SPY and DIA to overall_market_tracker
+- add text file for which symbols to track
+- clean up calculate_technical_indicators.py
+- clean up overall_market_tracker.py
+- clean up technical_indicator_notifier.py
+- organize the folders

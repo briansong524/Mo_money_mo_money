@@ -106,22 +106,24 @@ def main(config):
 
 	tickers = ' '.join(symbols)
 	data = yf.download(tickers = tickers, 
-		period = period, interval = interval, group_by = 'ticker')
-	# dropping incomplete data
-	data = data.dropna() 
-	for symbol in symbols:
-		data = data[data[(symbol,'Volume')] != 0] # this maybe overkill
+		period = period, interval = interval, group_by = 'ticker', prepost = True)
+
 	latest_dt = data.index[-1] # index contains datetime for multi symbols
 	latest_dt = latest_dt.astimezone(pytz.timezone('America/Los_Angeles'))
-	# localFormat = "%Y-%m-%d %H:%M:%S"
-	# latest_dt = latest_dt.strftime(localFormat)
-	# logger.info('last datetime: ' + str(latest_dt))
+	localFormat = "%Y-%m-%d %H:%M:%S"
+	latest_dt = latest_dt.strftime(localFormat)
+	print('last datetime: ' + str(latest_dt))
 
 	# calculate technical indicators
 
 	for symbol in symbols:
 		try:
-			rows = data[symbol]['Close'].values
+			# dropping incomplete data
+			df = data[symbol].dropna() 
+			df = df[df['Volume'] != 0] # this maybe overkill
+
+
+			rows = df['Close'].values
 			print(rows[-5:])
 			rows = rows[1:] - rows[:-1] # make prices to deltas
 
