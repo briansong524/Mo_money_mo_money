@@ -1,5 +1,7 @@
 todo:
 
+- only send message when rsi goes below the already oversold, or above the already overbought
+
 - create methods for some processes shared across multiple scripts
 - add SPY and DIA to overall_market_tracker
 - add text file for which symbols to track

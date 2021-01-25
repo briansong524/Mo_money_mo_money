@@ -90,7 +90,14 @@ def main(config):
 	period = str(config['period'])
 	interval = str(config['interval'])
 	info_dict = {}
-
+	try:
+		overbought = int(config['overbought_threshold'])
+	except:
+		overbought = 70
+	try:
+		oversold = int(config['oversold_threshold'])
+	except:
+		oversold = 30
 
 	# make slack gate file to repress redundant messages
 	new_instance = False
@@ -139,9 +146,7 @@ def main(config):
 			# send slack message based on rsi
 
 			## state of the stock
-			def rsi_as_category(rsi):
-				overbought = 75
-				oversold = 30
+			def rsi_as_category(rsi, overbought, oversold):
 
 				if rsi <= oversold:
 					status = 'Oversold'
@@ -151,7 +156,7 @@ def main(config):
 					status = 'Normal'
 				return status
 
-			status = rsi_as_category(rsi)
+			status = rsi_as_category(rsi, overbought, oversold)
 			# save rsi somewhere
 			rsi_dict[symbol] = {'rsi':str(round(rsi,2)), 'status':status}
 
@@ -161,23 +166,41 @@ def main(config):
 			# bool1 = True
 			bool2 = send_slack_gate(slack_gate,symbol,interval)
 
+
 			if bool1 & bool2 & ~new_instance:
+				# dont send redundant message if the rsi is less oversold/overbought when it previously was
+				send_message = False
+				try:
+					if status == 'Oversold':
+						if slack_gate[symbol][interval]['last_rsi'] > rsi:
+							send_message = True
+					elif status == 'Overbought':
+						if slack_gate[symbol][interval]['last_rsi'] < rsi:
+							send_message = True
+				except:
+					send_message = True
 
-				text = '(' + status + ') ' + symbol + ' RSI' + str(n)  + ' (' + str(interval) + ' bars)' + ': ' + str(round(rsi,2))
-				## add time to the message
-				# curr = datetime.now()
-				# curr_pst = curr.astimezone(pytz.timezone('America/Los_Angeles'))
-				# localFormat = "%Y-%m-%d %H:%M:%S"
-				# curr_pst = curr_pst.strftime(localFormat)
-				# text += ' on ' + str(curr_pst) 
+				# make slack message
+				if send_message:
+					print('sending message')
+					text = '(' + status + ') ' + symbol + ' RSI' + str(n)  + ' (' + str(interval) + ' bars)' + ': ' + str(round(rsi,2))
+					## add time to the message
+					# curr = datetime.now()
+					# curr_pst = curr.astimezone(pytz.timezone('America/Los_Angeles'))
+					# localFormat = "%Y-%m-%d %H:%M:%S"
+					# curr_pst = curr_pst.strftime(localFormat)
+					# text += ' on ' + str(curr_pst) 
 
-				myobj = {"text":text}
-				send_message_slack(slack_hook, myobj)
+					myobj = {"text":text}
+					send_message_slack(slack_hook, myobj)
 
-				## add to slack_gate
-				if symbol not in slack_gate:
-					slack_gate[symbol] = {}
-				slack_gate[symbol][interval] = round(time.time(),2)
+			## add to slack_gate
+			if symbol not in slack_gate:
+				slack_gate[symbol] = {}
+			slack_gate[symbol][interval] = {
+											'last_epoch':round(time.time(),2),
+											'last_rsi':round(rsi,2)
+										   }
 
 		except Exception as e:
 			type_, value_, traceback_ = sys.exc_info()
@@ -212,11 +235,11 @@ def main(config):
 
 def send_slack_gate(slack_gate, symbol, interval):
 	try:
-		last_epoch = float(slack_gate[symbol][interval])
+		last_epoch = float(slack_gate[symbol][interval]['last_epoch'])
 	except:
 		return True
 
-	silence_time = 600 # 10 minutes
+	silence_time = 300 # 5 minutes
 	if time.time() - last_epoch > silence_time:
 		return True
 	else:
