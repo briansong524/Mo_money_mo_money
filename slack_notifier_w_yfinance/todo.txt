@@ -1,5 +1,6 @@
 todo:
 
+- add time gate to overall_market_tracker.py
 - create methods for some processes shared across multiple scripts
 - add SPY and DIA to overall_market_tracker
 - add text file for which symbols to track
@@ -10,4 +11,3 @@ todo:
 - move shared functions to a utils file
 - add a readme
 - move repo to private
-- 

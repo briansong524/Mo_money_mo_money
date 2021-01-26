@@ -56,12 +56,17 @@ def main(config):
 	
 	main_dir = os.path.dirname(os.path.realpath(__file__))
 	os.chdir(main_dir)
-	if os.path.exists('overall_market_last_status.txt'):
-		with open('overall_market_last_status.txt','r') as f:
-			last_status = f.read()
+
+	# make slack gate file to repress redundant messages
+	new_instance = False
+	rsi_dict = {}
+	if os.path.exists('overall_market_last_status.json'):
+		with open('overall_market_last_status.json','r') as f:
+			slack_gate = json.load(f)
 	else:
-		last_status = ''
-	
+		slack_gate = {}
+		new_instance = True
+		
 	# initialize
 	# logger,handler = global_logger_init('/home/minx/Documents/logs/')
 	slack_hook = config['overall_market_webhook']
@@ -75,18 +80,13 @@ def main(config):
 	ticker = yf.Ticker(symbol)
 	start_date = str((datetime.now() - timedelta(days=59)).date())
 	data = ticker.history(interval = interval, start = start_date).reset_index()
-
-	# # dropping incomplete data
-	# data = data.dropna() 
-	# latest_dt = data.index[-1] # index contains datetime for multi symbols
+	
 	# latest_dt = latest_dt.astimezone(pytz.timezone('America/Los_Angeles'))
 
 	# calculate technical indicators
 
 
 	try:
-		data['Upper'] = data[['Open','Close']].max(axis = 1)
-		data['Lower'] = data[['Open','Close']].min(axis = 1)
 		data['Midpoint'] = data[['Open','Close']].mean(axis = 1)
 		data['pos'] = data['Datetime'].map(lambda x: (x - data['Datetime'].iloc[0]).total_seconds() / 60 / 60) # for linear regression
 

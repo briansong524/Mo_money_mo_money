@@ -194,13 +194,13 @@ def main(config):
 					myobj = {"text":text}
 					send_message_slack(slack_hook, myobj)
 
-			## add to slack_gate
-			if symbol not in slack_gate:
-				slack_gate[symbol] = {}
-			slack_gate[symbol][interval] = {
-											'last_epoch':round(time.time(),2),
-											'last_rsi':round(rsi,2)
-										   }
+				## add to slack_gate
+				if symbol not in slack_gate:
+					slack_gate[symbol] = {}
+				slack_gate[symbol][interval] = {
+												'last_epoch':round(time.time(),2),
+												'last_rsi':round(rsi,2)
+											   }
 
 		except Exception as e:
 			type_, value_, traceback_ = sys.exc_info()
