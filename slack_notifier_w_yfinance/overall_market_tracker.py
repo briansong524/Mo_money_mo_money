@@ -57,16 +57,23 @@ def main(config):
 	main_dir = os.path.dirname(os.path.realpath(__file__))
 	os.chdir(main_dir)
 
+	# if os.path.exists('overall_market_last_status.txt'):
+	# 	with open('overall_market_last_status.txt','r') as f:
+	# 		last_status = f.read()
+	# else:
+	# 	last_status = ''
+
 	# make slack gate file to repress redundant messages
 	new_instance = False
 	rsi_dict = {}
 	if os.path.exists('overall_market_last_status.json'):
 		with open('overall_market_last_status.json','r') as f:
 			slack_gate = json.load(f)
+			last_status = slack_gate['last_status']
 	else:
 		slack_gate = {}
 		new_instance = True
-		
+		last_status = ''
 	# initialize
 	# logger,handler = global_logger_init('/home/minx/Documents/logs/')
 	slack_hook = config['overall_market_webhook']
@@ -139,16 +146,31 @@ def main(config):
 		message, status, recommendation = market_status(macd, rsi, epsilon)
 		print(last_status, status)
 
-		if last_status != status:
-
-			text = 'Trend for ' + symbol + '\n'
-			text += 'Change in status:' + '\n'
-			text += 'MACD: ' + str(status_dict[last_status[0]]) + ' -> ' + str(status_dict[status[0]]) + '\n'
-			text += 'RSI: ' + str(status_dict[last_status[1]]) + ' -> ' + str(status_dict[status[1]]) + '\n'
-			text += 'Epsilon: ' + str(status_dict[last_status[2]]) + ' -> ' + str(status_dict[status[2]]) + '\n'
+		if last_status == '':
+			text = "New Instance\n"
+			text += 'Trend for ' + symbol + '\n'
+			text += 'MACD: ' + str(status_dict[status[0]]) + '\n'
+			text += 'RSI: ' + str(status_dict[status[1]]) + '\n'
+			text += 'Epsilon: ' + str(status_dict[status[2]]) + '\n'
 			text += 'Note: ' + str(message)
 			myobj = {"text":text}
 			send_message_slack(slack_hook, myobj)
+		else:
+			if last_status != status:
+
+				text = 'Trend for ' + symbol + '\n'
+				text += 'Change in status:\n'
+				text += 'MACD: ' + str(status_dict[last_status[0]]) + ' -> ' + str(status_dict[status[0]]) + '\n'
+				text += 'RSI: ' + str(status_dict[last_status[1]]) + ' -> ' + str(status_dict[status[1]]) + '\n'
+				text += 'Epsilon: ' + str(status_dict[last_status[2]]) + ' -> ' + str(status_dict[status[2]]) + '\n'
+				text += 'Note: ' + str(message)
+				myobj = {"text":text}
+				send_message_slack(slack_hook, myobj)
+
+		slack_gate[symbol] = {
+								'last_epoch':round(time.time(),2),
+								'last_rsi':round(rsi,2)
+						     }
 
 	except Exception as e:
 		type_, value_, traceback_ = sys.exc_info()
@@ -159,8 +181,8 @@ def main(config):
 		myobj = {"text":'something happened with ' + str(symbol) + ": " + str(tb)}
 		send_message_slack(slack_hook, myobj)
 
-	with open('overall_market_last_status.txt','w') as f:
-		f.write(status)
+	# with open('overall_market_last_status.txt','w') as f:
+	# 	f.write(status)
 	# send_message_slack(slack_hook,{'text':'sent'})
 
 

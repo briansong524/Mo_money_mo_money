@@ -49,7 +49,8 @@ import pytz
 from datetime import datetime
 import pandas as pd
 import numpy as np
-from utils import calculate_rsi, send_message_slack
+from utils import calculate_rsi, mult_rsi, rsi_as_category
+from utils import send_message_slack
 # from utils import global_logger_init, global_logger_cleanup
 
 ## logger specs ##
@@ -131,30 +132,23 @@ def main(config):
 
 
 			rows = df['Close'].values
-			print(rows[-5:])
-			rows = rows[1:] - rows[:-1] # make prices to deltas
+			rsi = mult_rsi(rows, n_int = n, last_rsi_only = True)
+			# print(rows[-5:])
+			# rows = rows[1:] - rows[:-1] # make prices to deltas
 
-			# initial calculation
-			vals = rows[:n]
-			prevU = np.sum(vals * (vals > 0).astype(int)) / n
-			prevD = -1 * np.sum(vals * (vals < 0).astype(int)) / n
+			# # initial calculation
+			# vals = rows[:n]
+			# prevU = np.sum(vals * (vals > 0).astype(int)) / n
+			# prevD = -1 * np.sum(vals * (vals < 0).astype(int)) / n
 
-			for i in range(n, len(rows)):
-				rsi, prevU, prevD = calculate_rsi(rows[i], prevU, prevD, n)
+			# for i in range(n, len(rows)):
+			# 	rsi, prevU, prevD = calculate_rsi(rows[i], prevU, prevD, n)
 
 			print('RSI: ' + str(rsi))
 			# send slack message based on rsi
 
 			## state of the stock
-			def rsi_as_category(rsi, overbought, oversold):
 
-				if rsi <= oversold:
-					status = 'Oversold'
-				elif rsi >= overbought:
-					status = 'Overbought'
-				else:
-					status = 'Normal'
-				return status
 
 			status = rsi_as_category(rsi, overbought, oversold)
 			# save rsi somewhere

@@ -127,6 +127,28 @@ def calculate_rsi(val, prevU = 0, prevD = 0, n = 9):
 	rsi = 100.0 - 100.0 / (1 + rs)
 	return rsi, avgU, avgD
 
+def mult_rsi(vals, n_int = 9, last_rsi_only = False):
+	# given a sequential list of values, obtain the last [len(vals)-n_int] rsi 
+	# vals expected to be a numpy array
+
+	assert (len(vals) - 1) > n_int, "there needs to be more values than number of intervals (n_int)"
+
+	rsi_list = []
+	vals = vals[1:] - vals[:-1]
+	
+	# initialize starting values
+	init_vals = vals[:n_int]
+	prevU = np.sum(init_vals * (init_vals > 0).astype(int)) / 9
+	prevD = -1 * np.sum(init_vals * (init_vals < 0).astype(int)) / 9
+
+	# iterate through the rest of the values
+	for i in range(n_int, len(vals)):
+		rsi_, prevU, prevD = calculate_rsi(vals[i], prevU, prevD, n_int)
+		rsi_list.append(rsi_)
+	if last_rsi_only:
+		return rsi_
+	else:
+		return rsi_list
 
 def calculate_ema(new_val, last_ema, interval, smoothing):
     x = new_val*(smoothing / (1 + interval)) + last_ema*(1-(smoothing / (1 + interval)))
@@ -156,3 +178,13 @@ def categorize_trend(x, high_val, low_val, as_color = False):
             return 'y'
         else:
             return 'normal'
+
+def rsi_as_category(rsi, overbought, oversold):
+
+	if rsi <= oversold:
+		status = 'Oversold'
+	elif rsi >= overbought:
+		status = 'Overbought'
+	else:
+		status = 'Normal'
+	return status
