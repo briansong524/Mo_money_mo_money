@@ -151,13 +151,13 @@ def main(config):
 
 
 			status = rsi_as_category(rsi, overbought, oversold)
+			
 			# save rsi somewhere
-			rsi_dict[symbol] = {'rsi':str(round(rsi,2)), 'status':status}
+			# rsi_dict[symbol] = {'rsi':str(round(rsi,2)), 'status':status}
+
 
 			# send to slack if conditions are met
-
 			bool1 = status in ['Oversold','Overbought']
-			# bool1 = True
 			bool2 = send_slack_gate(slack_gate,symbol,interval)
 
 

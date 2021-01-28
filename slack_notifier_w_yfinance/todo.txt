@@ -14,3 +14,4 @@ todo:
 - add a readme
 - move repo to private
 - clean up cron logic
+- add loggers
