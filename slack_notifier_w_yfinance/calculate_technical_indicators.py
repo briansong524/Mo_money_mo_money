@@ -186,7 +186,7 @@ def main(config):
 				slack_gate[symbol][interval]['last_epoch'] = round(time.time(),2)
 
 			## reset peaks if rsi within 'very normal' bounds
-			if (rsi < (overbought - 10)) & (rsi > (oversold + 10)):
+			if (rsi < (overbought - 5)) & (rsi > (oversold + 5)):
 				rsi_max = 50.
 				rsi_min = 50.
 			else:
