@@ -140,7 +140,7 @@ def main(config):
 			rows = midpoint_imputation(rows) # fill in missing values
 			# rows = df[['Open','Close']].mean(axis = 1).values # midpoint 
 			rsi = mult_rsi(rows, n_int = n, last_rsi_only = True)
-			rsi = 16
+			# rsi = 16
 			# print(rows[-5:])
 			# rows = rows[1:] - rows[:-1] # make prices to deltas
 
