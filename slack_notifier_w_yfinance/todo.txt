@@ -1,10 +1,5 @@
 todo:
 
-- change RSI calculations from CLOSE to MIDPOINT 
-- create methods for some processes shared across multiple scripts
-- move shared functions to a utils file
-- bulk send calculate_technical_indicators.py slack message (so one message for multiple events)
-- clean up calculate_technical_indicators.py
 - organize the folders
 - add time gate to overall_market_tracker.py
 - add SPY and DIA to overall_market_tracker
