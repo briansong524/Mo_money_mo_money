@@ -140,7 +140,7 @@ def main(config):
 			rows = midpoint_imputation(rows) # fill in missing values
 			# rows = df[['Open','Close']].mean(axis = 1).values # midpoint 
 			rsi = mult_rsi(rows, n_int = n, last_rsi_only = True)
-			# rsi = 16
+			# rsi = 12
 			# print(rows[-5:])
 			# rows = rows[1:] - rows[:-1] # make prices to deltas
 
@@ -171,8 +171,10 @@ def main(config):
 			# send to slack if conditions are met
 			bool1 = status in ['Oversold','Overbought']
 			try:
-				bool2 = epoch_check_slack_gate(slack_gate[symbol][interval]['last_epoch'])
+				last_epoch = slack_gate[symbol][interval]['last_epoch']
+				bool2 = epoch_check_slack_gate(last_epoch)
 			except:
+				last_epoch = 0.0
 				bool2 = True
 			bool3 = rsi_peak_check_slack_gate([rsi_max,rsi_min],rsi,status)
 
@@ -183,7 +185,8 @@ def main(config):
 				print('sending message')
 				text += '(' + status + ') ' + symbol + ' RSI' + str(n)  + ' (' 
 				text += str(interval) + ' bars)' + ': ' + str(round(rsi,2)) + '\n'
-				slack_gate[symbol][interval]['last_epoch'] = round(time.time(),2)
+				last_epoch = round(time.time(),2)
+				# slack_gate[symbol][interval]['last_epoch'] = round(time.time(),2)
 
 			## reset peaks if rsi within 'very normal' bounds
 			if (rsi < (overbought - 5)) & (rsi > (oversold + 5)):
@@ -196,12 +199,16 @@ def main(config):
 			## add to slack_gate
 			if symbol not in slack_gate:
 				slack_gate[symbol] = {}
-			slack_gate[symbol][interval] = {
-											'last_rsi':round(rsi,2),
-											'max_rsi':rsi_max,
-											'min_rsi':rsi_min,
-											'status':status
-										   }
+			if interval not in slack_gate[symbol]:
+				slack_gate[symbol][interval] = {}
+	
+			slack_gate[symbol][interval].update({
+												'last_rsi':round(rsi,2),
+												'max_rsi':rsi_max,
+												'min_rsi':rsi_min,
+												'status':status,
+												'last_epoch':last_epoch
+											   })
 
 		except Exception as e:
 			type_, value_, traceback_ = sys.exc_info()
@@ -229,10 +236,8 @@ def main(config):
 		text = 'New instance running for symbols: ' + str(config['symbols']) + '\n\n'
 		text += 'Current RSI(s):\n'
 		text += rsi_text
-		# print(text)
 		myobj = {"text":text}
-		send_message_slack(slack_hook, myobj)
-
+		send_message_slack(slack_hook, myobj)									   
 	with open('slack_gate.json','w') as f:
 		json.dump(slack_gate, f)
 	# send_message_slack(slack_hook,{'text':'sent'})
