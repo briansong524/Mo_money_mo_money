@@ -51,6 +51,9 @@ import pandas as pd
 import numpy as np
 from utils import calculate_rsi, mult_rsi, rsi_as_category
 from utils import send_message_slack
+from utils import epoch_check_slack_gate, rsi_peak_check_slack_gate
+from utils import midpoint_imputation
+
 # from utils import global_logger_init, global_logger_cleanup
 
 ## logger specs ##
@@ -99,6 +102,8 @@ def main(config):
 		oversold = int(config['oversold_threshold'])
 	except:
 		oversold = 30
+	send_message = False # swaps to True if any of the symbols were to be sent
+	text = ''
 
 	# make slack gate file to repress redundant messages
 	new_instance = False
@@ -127,12 +132,15 @@ def main(config):
 	for symbol in symbols:
 		try:
 			# dropping incomplete data
-			df = data[symbol].dropna() 
-			df = df[df['Volume'] != 0] # this maybe overkill
+			df = data[symbol].copy() 
+			# df = df[df['Volume'] != 0] # this maybe overkill
 
 
 			rows = df['Close'].values
+			rows = midpoint_imputation(rows) # fill in missing values
+			# rows = df[['Open','Close']].mean(axis = 1).values # midpoint 
 			rsi = mult_rsi(rows, n_int = n, last_rsi_only = True)
+			rsi = 16
 			# print(rows[-5:])
 			# rows = rows[1:] - rows[:-1] # make prices to deltas
 
@@ -148,53 +156,52 @@ def main(config):
 			# send slack message based on rsi
 
 			## state of the stock
-
-
 			status = rsi_as_category(rsi, overbought, oversold)
 			
-			# save rsi somewhere
+			# save rsi somewhere (for new instances)
 			# rsi_dict[symbol] = {'rsi':str(round(rsi,2)), 'status':status}
 
+			try:
+				rsi_max = slack_gate[symbol][interval]['max_rsi']
+				rsi_min = slack_gate[symbol][interval]['min_rsi']
+			except:
+				rsi_max = 50.
+				rsi_min = 50.
 
 			# send to slack if conditions are met
 			bool1 = status in ['Oversold','Overbought']
-			bool2 = send_slack_gate(slack_gate,symbol,interval)
+			try:
+				bool2 = epoch_check_slack_gate(slack_gate[symbol][interval]['last_epoch'])
+			except:
+				bool2 = True
+			bool3 = rsi_peak_check_slack_gate([rsi_max,rsi_min],rsi,status)
 
-
-			if bool1 & bool2 & ~new_instance:
-				# dont send redundant message if the rsi is less oversold/overbought when it previously was
-				send_message = False
-				try:
-					if status == 'Oversold':
-						if slack_gate[symbol][interval]['last_rsi'] > rsi:
-							send_message = True
-					elif status == 'Overbought':
-						if slack_gate[symbol][interval]['last_rsi'] < rsi:
-							send_message = True
-				except:
-					send_message = True
+			if bool1 & bool2 & bool3 & ~new_instance:
+				send_message = True
 
 				# make slack message
-				if send_message:
-					print('sending message')
-					text = '(' + status + ') ' + symbol + ' RSI' + str(n)  + ' (' + str(interval) + ' bars)' + ': ' + str(round(rsi,2))
-					## add time to the message
-					# curr = datetime.now()
-					# curr_pst = curr.astimezone(pytz.timezone('America/Los_Angeles'))
-					# localFormat = "%Y-%m-%d %H:%M:%S"
-					# curr_pst = curr_pst.strftime(localFormat)
-					# text += ' on ' + str(curr_pst) 
+				print('sending message')
+				text += '(' + status + ') ' + symbol + ' RSI' + str(n)  + ' (' 
+				text += str(interval) + ' bars)' + ': ' + str(round(rsi,2)) + '\n'
+				slack_gate[symbol][interval]['last_epoch'] = round(time.time(),2)
 
-					myobj = {"text":text}
-					send_message_slack(slack_hook, myobj)
+			## reset peaks if rsi within 'very normal' bounds
+			if (rsi < (overbought - 10)) & (rsi > (oversold + 10)):
+				rsi_max = 50.
+				rsi_min = 50.
+			else:
+				rsi_max = max(rsi_max, rsi)
+				rsi_min = min(rsi_min, rsi)
 
-				## add to slack_gate
-				if symbol not in slack_gate:
-					slack_gate[symbol] = {}
-				slack_gate[symbol][interval] = {
-												'last_epoch':round(time.time(),2),
-												'last_rsi':round(rsi,2)
-											   }
+			## add to slack_gate
+			if symbol not in slack_gate:
+				slack_gate[symbol] = {}
+			slack_gate[symbol][interval] = {
+											'last_rsi':round(rsi,2),
+											'max_rsi':rsi_max,
+											'min_rsi':rsi_min,
+											'status':status
+										   }
 
 		except Exception as e:
 			type_, value_, traceback_ = sys.exc_info()
@@ -209,11 +216,15 @@ def main(config):
 	# send a message if its the first time with new config
 	# regardless of rsi 
 
-	if new_instance:
+	if send_message:
+		myobj = {"text":text}
+		send_message_slack(slack_hook, myobj)		
 
+	if new_instance:
 		rsi_text = ''
-		for i in rsi_dict.keys():
-			rsi_text += str(i) + ': ' + str(rsi_dict[i]['rsi']) + ' (' + str(rsi_dict[i]['status']) + ')\n'
+		for i in slack_gate.keys():
+			rsi_text += str(i) + ': ' + str(slack_gate[i][interval]['last_rsi']) 
+			rsi_text += ' (' + str(slack_gate[i][interval]['status']) + ')\n'
 
 		text = 'New instance running for symbols: ' + str(config['symbols']) + '\n\n'
 		text += 'Current RSI(s):\n'
@@ -227,17 +238,6 @@ def main(config):
 	# send_message_slack(slack_hook,{'text':'sent'})
 
 
-def send_slack_gate(slack_gate, symbol, interval):
-	try:
-		last_epoch = float(slack_gate[symbol][interval]['last_epoch'])
-	except:
-		return True
-
-	silence_time = 300 # 5 minutes
-	if time.time() - last_epoch > silence_time:
-		return True
-	else:
-		return False
 
 if __name__ == '__main__':
 	# logger = ''

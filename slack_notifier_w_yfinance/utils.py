@@ -188,3 +188,51 @@ def rsi_as_category(rsi, overbought, oversold):
 	else:
 		status = 'Normal'
 	return status
+
+
+## notifier functions
+
+def epoch_check_slack_gate(last_epoch):
+	silence_time = 300 # 5 minutes
+	if time.time() - last_epoch > silence_time:
+		return True
+	else:
+		return False
+
+def rsi_peak_check_slack_gate(max_min_rsi, rsi, status):
+	# dont send redundant message if the rsi is less oversold/overbought when it previously was
+
+	send_message = False
+	try:
+		if status == 'Oversold':
+			if max_min_rsi[1] > rsi:
+				send_message = True
+		elif status == 'Overbought':
+			if max_min_rsi[0] < rsi:
+				send_message = True
+	except:
+		send_message = True
+	finally:
+		return send_message
+
+## data functions
+
+def midpoint_imputation(vals):
+	# impute missing data with the midpoint of the two neighboring values
+	# input expects a numpy array of shape (n,)
+	# drop leading and tailing nans
+	# if there are multiple na's in a row, impute the same midpoint for all
+	edges = np.where(~np.isnan(vals))[0][[0,-1]]
+	vals = vals[edges[0]:(edges[1]+1)]
+	na_inds = np.where(np.isnan(vals))[0]
+	for i in na_inds:
+		if ~np.isnan(vals[i]):
+			pass
+		else:
+			left = 1; right = 1
+			while np.isnan(vals[i-left]):
+				left += 1
+			while np.isnan(vals[i+right]):
+				right += 1
+			vals[(i-left+1):(i+right)] = np.mean([vals[i-left],vals[i+right]])
+	return vals
