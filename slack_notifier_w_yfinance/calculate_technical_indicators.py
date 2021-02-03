@@ -69,13 +69,16 @@ parser.add_argument(
 	help = 'Config file for all configuration info')
 parser.add_argument(
 	'--rsi_bars', type=int, default=0,
-	help = 'number of bars used to calculate rsi')
+	help = 'Number of bars used to calculate rsi')
 parser.add_argument(
 	'--period', type=str, default='',
-	help = 'how much historical data to use')
+	help = 'How much historical data to use')
 parser.add_argument(
 	'--interval', type=str, default='',
-	help = 'size of bar')
+	help = 'Size of bar')
+parser.add_argument(
+	'--which_values', type=str, default='Close',
+	help = 'Close or Midpoint values to use')
 
 
 
@@ -93,7 +96,7 @@ def main(config):
 	n = int(config['rsi_bars'])
 	period = str(config['period'])
 	interval = str(config['interval'])
-	info_dict = {}
+	which_values = str(config['which_values'])
 	try:
 		overbought = int(config['overbought_threshold'])
 	except:
@@ -107,7 +110,6 @@ def main(config):
 
 	# make slack gate file to repress redundant messages
 	new_instance = False
-	rsi_dict = {}
 	if os.path.exists('slack_gate.json'):
 		with open('slack_gate.json','r') as f:
 			slack_gate = json.load(f)
@@ -121,11 +123,11 @@ def main(config):
 	data = yf.download(tickers = tickers, 
 		period = period, interval = interval, group_by = 'ticker', prepost = True)
 
-	latest_dt = data.index[-1] # index contains datetime for multi symbols
-	latest_dt = latest_dt.astimezone(pytz.timezone('America/Los_Angeles'))
-	localFormat = "%Y-%m-%d %H:%M:%S"
-	latest_dt = latest_dt.strftime(localFormat)
-	print('last datetime: ' + str(latest_dt))
+	# latest_dt = data.index[-1] # index contains datetime for multi symbols
+	# latest_dt = latest_dt.astimezone(pytz.timezone('America/Los_Angeles'))
+	# localFormat = "%Y-%m-%d %H:%M:%S"
+	# latest_dt = latest_dt.strftime(localFormat)
+	# print('last datetime: ' + str(latest_dt))
 
 	# calculate technical indicators
 
@@ -135,32 +137,21 @@ def main(config):
 			df = data[symbol].copy() 
 			# df = df[df['Volume'] != 0] # this maybe overkill
 
+			# just do midpoint as default option 
+			if which_values == 'Close':
+				rows = df['Close'].values
+			else:
+				rows = df[['Open','Close']].mean(axis = 1).values # midpoint 
 
-			rows = df['Close'].values
 			rows = midpoint_imputation(rows) # fill in missing values
-			# rows = df[['Open','Close']].mean(axis = 1).values # midpoint 
 			rsi = mult_rsi(rows, n_int = n, last_rsi_only = True)
-			# rsi = 12
-			# print(rows[-5:])
-			# rows = rows[1:] - rows[:-1] # make prices to deltas
-
-			# # initial calculation
-			# vals = rows[:n]
-			# prevU = np.sum(vals * (vals > 0).astype(int)) / n
-			# prevD = -1 * np.sum(vals * (vals < 0).astype(int)) / n
-
-			# for i in range(n, len(rows)):
-			# 	rsi, prevU, prevD = calculate_rsi(rows[i], prevU, prevD, n)
-
 			print('RSI: ' + str(rsi))
+			
 			# send slack message based on rsi
 
 			## state of the stock
 			status = rsi_as_category(rsi, overbought, oversold)
 			
-			# save rsi somewhere (for new instances)
-			# rsi_dict[symbol] = {'rsi':str(round(rsi,2)), 'status':status}
-
 			try:
 				rsi_max = slack_gate[symbol][interval]['max_rsi']
 				rsi_min = slack_gate[symbol][interval]['min_rsi']
@@ -259,4 +250,5 @@ if __name__ == '__main__':
 		config['period'] = FLAGS.period
 	if FLAGS.interval != '':
 		config['interval'] = FLAGS.interval
+	config['which_values'] = FLAGS.which_values
 	main(config)

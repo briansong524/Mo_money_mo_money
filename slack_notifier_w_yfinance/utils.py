@@ -114,6 +114,32 @@ def simple_lr(x,y):
     
     return lr, lr.coef_[0], lr.intercept_
 
+def calculate_epsilon(df, last_epsilon_only = False):
+	df['Midpoint'] = df[['Open','Close']].mean(axis = 1)
+	df['pos'] = df['Datetime'].map(lambda x: (x - df['Datetime'].iloc[0]).total_seconds() / 60 / 60) # for linear regression
+
+	## obtain epsilon 
+	x = df['pos']
+	lr1, m, b = simple_lr(np.array(x).reshape(-1, 1), df['Midpoint'])
+	pred = lr1.predict(np.array(x).reshape(-1,1)) 
+	df['prop_dist_1'] = (pred - df['Midpoint']).abs() / pred
+	cutoff = np.percentile(df['prop_dist_1'], 65)
+	cutoff2 = np.percentile(df['prop_dist_1'], 50)
+	df = df[df['prop_dist_1'] < cutoff].copy()
+	x = np.array(df['pos']).reshape(-1,1)
+	lr2, m, b = simple_lr(x, df['Midpoint'])
+	pred = lr2.predict(np.array(x).reshape(-1,1))
+	df['prop_dist_2'] = (pred - df['Midpoint']).abs() / df['Midpoint']
+	df2 = df[df['prop_dist_2'] < cutoff2].copy()
+	x = np.array(df2['pos']).reshape(-1,1)
+	lr3, m, b = simple_lr(x, df2['Midpoint'])
+	pred = lr3.predict(df['pos'].values.reshape(-1,1))
+	df['epsilon'] = df['Midpoint'] - pred
+	epsilon = df['epsilon'].iloc[-1]
+	if last_epsilon_only:
+		return epsilon
+	else:
+		return df
 
 def calculate_rsi(val, prevU = 0, prevD = 0, n = 9):
 	if val > 0:
@@ -162,6 +188,34 @@ def calculate_macd(val, last_long_ema, last_short_ema,
     macd = short_ema - long_ema
     return macd, long_ema, short_ema
 
+def mult_macd(vals, long_int = 26, short_int = 12, signal_int = 9, smoothing = 2):
+	# given a sequential list of values, obtain the last
+	# [len(vals) - long_int] macd and 
+	# [len(vals) - long_int - signal_int] signals
+
+	assert long_int > short_int, "long interval size needs to be greater than short interval size"
+	assert len(vals) > (long_int + signal_int), "there needs to be more values for given interval sizes"
+
+	# iteratively calculate macd
+	macd_list = []
+	long_ema = np.mean(vals[:long_int]) # simple average of first 26 values
+	short_ema = np.mean(vals[(long_int - short_int):long_int]) # simple average of last 12 values from 26th index
+
+	for i in range(long_int, len(vals)):
+		macd, long_ema, short_ema = calculate_macd(vals[i], long_ema, short_ema, long_int, short_int, smoothing)
+		macd_list.append(macd)
+
+	# iterate through macd and calculate signal values
+	vals = np.array(macd_list)
+	ema = np.mean(vals[:signal_int]) # initialize ema
+	signal_list = [ema]
+
+	for i in range(signal_int, len(vals)):
+		ema = calculate_ema(vals[i], ema, signal_int, smoothing)
+		signal_list.append(ema)
+
+	return macd_list, signal_list
+	
 def categorize_trend(x, high_val, low_val, as_color = False):
     if x >= high_val:
         if as_color:
@@ -188,7 +242,6 @@ def rsi_as_category(rsi, overbought, oversold):
 	else:
 		status = 'Normal'
 	return status
-
 
 ## notifier functions
 

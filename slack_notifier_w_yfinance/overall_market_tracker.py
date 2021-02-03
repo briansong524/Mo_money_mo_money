@@ -3,6 +3,13 @@
 
 Tracks the overall market health, and makes notes accordingly
 
+Indicators Used:
+- RSI
+- MACD
+- Epsilon
+  - This one is self defined. The distance between true price and 
+    predicted price from linear regression
+
 Notes: 
 -These will note the general mid-long term market status, so
  should look to make intraday decisions with it in mind, but only 30%
@@ -27,7 +34,8 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 from utils import calculate_rsi, send_message_slack
-from utils import calculate_ema, calculate_macd, simple_lr
+from utils import calculate_ema, calculate_macd
+from utils import calculate_epsilon, simple_lr
 
 # from utils import global_logger_init, global_logger_cleanup
 
@@ -44,142 +52,112 @@ parser.add_argument(
 	help = 'Config file for all configuration info')
 parser.add_argument(
 	'--rsi_bars', type=int, default=14,
-	help = 'number of bars used to calculate rsi')
+	help = 'Number of bars used to calculate rsi')
 parser.add_argument(
 	'--interval', type=str, default='30m',
-	help = 'size of bar')
-
-
-
+	help = 'Size of bar')
+parser.add_argument(
+	'--which_values', type=str, default='Close',
+	help = 'Close or Midpoint values to use')
+parser.add_argument(
+	'--overbought', type=int, default=70,
+	help = 'Threshold for overbought rsi')
+parser.add_argument(
+	'--oversold', type=int, default=30,
+	help = 'Threshold for oversold rsi')
 
 def main(config):
 	
 	main_dir = os.path.dirname(os.path.realpath(__file__))
 	os.chdir(main_dir)
-
-	# if os.path.exists('overall_market_last_status.txt'):
-	# 	with open('overall_market_last_status.txt','r') as f:
-	# 		last_status = f.read()
-	# else:
-	# 	last_status = ''
-
-	# make slack gate file to repress redundant messages
-	new_instance = False
-	rsi_dict = {}
-	if os.path.exists('overall_market_last_status.json'):
-		with open('overall_market_last_status.json','r') as f:
-			slack_gate = json.load(f)
-			last_status = slack_gate['last_status']
-	else:
-		slack_gate = {}
-		new_instance = True
-		last_status = ''
 	# initialize
 	# logger,handler = global_logger_init('/home/minx/Documents/logs/')
 	slack_hook = config['overall_market_webhook']
+	symbols = 'NDAQ,SPY,DIA'.split(',')
 	n = int(config['rsi_bars'])
 	interval = str(config['interval'])
-	symbol = 'NDAQ'
+	which_values = str(config['which_values'])
+	try:
+		overbought = int(config['overbought_threshold'])
+	except:
+		overbought = 70
+	try:
+		oversold = int(config['oversold_threshold'])
+	except:
+		oversold = 30
+	send_message = False # swaps to True if any of the symbols were to be sent
+	text = ''
 	status_dict = {'h':'high', 'n':'normal','l':'low'}
 
-	# pull yfinance data
+	# make slack gate file to repress redundant messages
+	new_instance = False
+	if os.path.exists('overall_market_last_status.json'):
+		with open('overall_market_last_status.json','r') as f:
+			slack_gate = json.load(f)
+	else:
+		slack_gate = {}
+		new_instance = True
 
+	# pull yfinance data
 	ticker = yf.Ticker(symbol)
 	start_date = str((datetime.now() - timedelta(days=59)).date())
 	data = ticker.history(interval = interval, start = start_date).reset_index()
-	
-	# latest_dt = latest_dt.astimezone(pytz.timezone('America/Los_Angeles'))
 
 	# calculate technical indicators
+	for symbol in symbols:
+		try:
+			df = data[symbol].copy()
 
+			# just do midpoint as default option 
+			if which_values == 'Close':
+				rows = df['Close'].values
+			else:
+				rows = df[['Open','Close']].mean(axis = 1).values # midpoint 
 
-	try:
-		data['Midpoint'] = data[['Open','Close']].mean(axis = 1)
-		data['pos'] = data['Datetime'].map(lambda x: (x - data['Datetime'].iloc[0]).total_seconds() / 60 / 60) # for linear regression
+			rsi = mult_rsi(rows, n_int = 14)
+			macd = mult_macd(rows)
+			epsilon = calculate_epsilon(df, last_epsilon_only = True)
 
-		x = data['pos']
-		lr1, m, b = simple_lr(np.array(x).reshape(-1, 1), data['Midpoint'])
-		pred = lr1.predict(np.array(x).reshape(-1,1)) 
-		data['prop_dist_1'] = (pred - data['Midpoint']).abs() / pred
-		cutoff = np.percentile(data['prop_dist_1'], 65)
-		cutoff2 = np.percentile(data['prop_dist_1'], 50)
-		df = data[data['prop_dist_1'] < cutoff].copy()
-		x = np.array(df['pos']).reshape(-1,1)
-		lr2, m, b = simple_lr(x, df['Midpoint'])
-		pred = lr2.predict(np.array(x).reshape(-1,1))
-		df['prop_dist_2'] = (pred - df['Midpoint']).abs() / df['Midpoint']
-		df2 = df[df['prop_dist_2'] < cutoff2].copy()
-		x = np.array(df2['pos']).reshape(-1,1)
-		lr3, m, b = simple_lr(x, df2['Midpoint'])
-		pred = lr3.predict(data['pos'].values.reshape(-1,1))
-		data['epsilon'] = data['Midpoint'] - pred
-		epsilon = data['epsilon'].iloc[-1]
-
-		
-		rsi_list = []
-		n = 14
-		rows = data['Close'].values
-		# print(rows[-5:])
-		rows = rows[1:] - rows[:-1] # make prices to deltas
-
-		# initial calculation
-		vals = rows[:n]
-		prevU = np.sum(vals * (vals > 0).astype(int)) / n
-		prevD = -1 * np.sum(vals * (vals < 0).astype(int)) / n
-
-		for i in range(n, len(rows)):
-		    rsi, prevU, prevD = calculate_rsi(rows[i], prevU, prevD, n)
-
-		# initialize 
-		vals = data['Close'].values
-		smoothing = 2
-		long_int = 26; short_int = 12 # accepted norm of ema lengths for macd
-		long_ema = np.mean(vals[:long_int]) # simple average of first 26 values
-		short_ema = np.mean(vals[(long_int - short_int):long_int]) # simple average of last 12 values from 26th index
-
-
-		# measure macd
-		for i in range(long_int, len(vals)):
-		    macd, long_ema, short_ema = calculate_macd(vals[i], long_ema, short_ema, long_int, short_int, smoothing)
-
-
-		message, status, recommendation = market_status(macd, rsi, epsilon)
-		print(last_status, status)
-
-		if last_status == '':
-			text = "New Instance\n"
-			text += 'Trend for ' + symbol + '\n'
-			text += 'MACD: ' + str(status_dict[status[0]]) + '\n'
-			text += 'RSI: ' + str(status_dict[status[1]]) + '\n'
-			text += 'Epsilon: ' + str(status_dict[status[2]]) + '\n'
-			text += 'Note: ' + str(message)
-			myobj = {"text":text}
-			send_message_slack(slack_hook, myobj)
-		else:
-			if last_status != status:
-
-				text = 'Trend for ' + symbol + '\n'
-				text += 'Change in status:\n'
-				text += 'MACD: ' + str(status_dict[last_status[0]]) + ' -> ' + str(status_dict[status[0]]) + '\n'
-				text += 'RSI: ' + str(status_dict[last_status[1]]) + ' -> ' + str(status_dict[status[1]]) + '\n'
-				text += 'Epsilon: ' + str(status_dict[last_status[2]]) + ' -> ' + str(status_dict[status[2]]) + '\n'
+			message, status, recommendation = market_status(macd, rsi, epsilon)
+			try:
+				last_status = slack_gate[symbol][interval]['last_status']
+			except:
+				last_status = ''
+				
+			if last_status == '':
+				text = "New Instance\n"
+				text += 'Trend for ' + symbol + '\n'
+				text += 'MACD: ' + str(status_dict[status[0]]) + '\n'
+				text += 'RSI: ' + str(status_dict[status[1]]) + '\n'
+				text += 'Epsilon: ' + str(status_dict[status[2]]) + '\n'
 				text += 'Note: ' + str(message)
 				myobj = {"text":text}
 				send_message_slack(slack_hook, myobj)
+			else:
+				if last_status != status:
 
-		slack_gate[symbol] = {
-								'last_epoch':round(time.time(),2),
-								'last_rsi':round(rsi,2)
-						     }
+					text = 'Trend for ' + symbol + '\n'
+					text += 'Change in status:\n'
+					text += 'MACD: ' + str(status_dict[last_status[0]]) + ' -> ' + str(status_dict[status[0]]) + '\n'
+					text += 'RSI: ' + str(status_dict[last_status[1]]) + ' -> ' + str(status_dict[status[1]]) + '\n'
+					text += 'Epsilon: ' + str(status_dict[last_status[2]]) + ' -> ' + str(status_dict[status[2]]) + '\n'
+					text += 'Note: ' + str(message)
+					myobj = {"text":text}
+					send_message_slack(slack_hook, myobj)
 
-	except Exception as e:
-		type_, value_, traceback_ = sys.exc_info()
-		tb = traceback.format_exception(type_, value_, traceback_)
-		tb = '\n' + ' '.join(tb)
-		# logger.error('\n' + ' '.join(tb))
-		# logger.error('exception occured %s',str(e))
-		myobj = {"text":'something happened with ' + str(symbol) + ": " + str(tb)}
-		send_message_slack(slack_hook, myobj)
+			slack_gate[symbol] = {
+									'last_epoch':round(time.time(),2),
+									'last_rsi':round(rsi,2)
+							     }
+
+		except Exception as e:
+			type_, value_, traceback_ = sys.exc_info()
+			tb = traceback.format_exception(type_, value_, traceback_)
+			tb = '\n' + ' '.join(tb)
+			# logger.error('\n' + ' '.join(tb))
+			# logger.error('exception occured %s',str(e))
+			myobj = {"text":'something happened with ' + str(symbol) + ": " + str(tb)}
+			send_message_slack(slack_hook, myobj)
 
 	# with open('overall_market_last_status.txt','w') as f:
 	# 	f.write(status)
@@ -285,4 +263,6 @@ if __name__ == '__main__':
 		config['rsi_bars'] = FLAGS.rsi_bars
 	if FLAGS.interval != '30m':
 		config['interval'] = FLAGS.interval
+	config['overbought_threshold'] = FLAGS.overbought
+	config['oversold_threshold'] = FLAGS.oversold
 	main(config)
