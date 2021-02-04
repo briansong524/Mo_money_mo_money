@@ -36,6 +36,7 @@ import numpy as np
 from utils import calculate_rsi, send_message_slack
 from utils import calculate_ema, calculate_macd
 from utils import calculate_epsilon, simple_lr
+from utils import midpoint_imputation
 
 # from utils import global_logger_init, global_logger_cleanup
 
@@ -114,6 +115,7 @@ def main(config):
 			else:
 				rows = df[['Open','Close']].mean(axis = 1).values # midpoint 
 
+			rows = midpoint_imputation(rows)
 			rsi = mult_rsi(rows, n_int = 14)
 			macd = mult_macd(rows)
 			epsilon = calculate_epsilon(df, last_epsilon_only = True)

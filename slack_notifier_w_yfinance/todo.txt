@@ -1,5 +1,6 @@
 todo:
 
+- fix MACD interpretation
 - add time gate to overall_market_tracker.py
 - add SPY and DIA to overall_market_tracker
 - add text file for which symbols to track
