@@ -35,6 +35,7 @@ import pandas as pd
 import numpy as np
 from utils import calculate_rsi, send_message_slack
 from utils import calculate_ema, calculate_macd
+from utils import mult_rsi, mult_macd
 from utils import calculate_epsilon, simple_lr
 from utils import midpoint_imputation
 
@@ -100,14 +101,15 @@ def main(config):
 		new_instance = True
 
 	# pull yfinance data
-	ticker = yf.Ticker(symbol)
+	tickers = ' '.join(symbols)
 	start_date = str((datetime.now() - timedelta(days=59)).date())
-	data = ticker.history(interval = interval, start = start_date).reset_index()
-
+	# data = ticker.history(interval = interval, start = start_date).reset_index()
+	data = yf.download(tickers = tickers, start = start_date, interval = interval,
+						group_by = 'ticker', prepost = True)
 	# calculate technical indicators
 	for symbol in symbols:
 		try:
-			df = data[symbol].copy()
+			df = data[symbol].reset_index().copy()
 
 			# just do midpoint as default option 
 			if which_values == 'Close':
@@ -116,17 +118,29 @@ def main(config):
 				rows = df[['Open','Close']].mean(axis = 1).values # midpoint 
 
 			rows = midpoint_imputation(rows)
-			rsi = mult_rsi(rows, n_int = 14)
-			macd = mult_macd(rows)
-			epsilon = calculate_epsilon(df, last_epsilon_only = True)
+			rsi = mult_rsi(rows, n_int = 14, last_val_only = True)
+			macd, _ = mult_macd(rows)
+			df = calculate_epsilon(df)
+			epsilon = df['epsilon'].values[-1]
+			macd_range = np.percentile(macd, [20,90])
+			eps_range = np.percentile(df['epsilon'].values, [30,70])
 
-			message, status, recommendation = market_status(macd, rsi, epsilon)
+			message, status, recommendation = market_status(macd[-1], rsi, epsilon,
+															macd_range = macd_range,
+															eps_range = eps_range)
 			try:
 				last_status = slack_gate[symbol][interval]['last_status']
 			except:
 				last_status = ''
+
+			try:
+				last_epoch = slack_gate[symbol][interval]['last_epoch']
+				bool1 = epoch_check_slack_gate(last_epoch)
+			except:
+				last_epoch = 0.0
+				bool1 = True
 				
-			if last_status == '':
+			if :
 				text = "New Instance\n"
 				text += 'Trend for ' + symbol + '\n'
 				text += 'MACD: ' + str(status_dict[status[0]]) + '\n'
@@ -136,7 +150,7 @@ def main(config):
 				myobj = {"text":text}
 				send_message_slack(slack_hook, myobj)
 			else:
-				if last_status != status:
+				if (last_status != status) & bool1:
 
 					text = 'Trend for ' + symbol + '\n'
 					text += 'Change in status:\n'
@@ -146,6 +160,7 @@ def main(config):
 					text += 'Note: ' + str(message)
 					myobj = {"text":text}
 					send_message_slack(slack_hook, myobj)
+					slack_gate[symbol]['last_epoch'] = round(time.time(),2)
 
 			slack_gate[symbol] = {
 									'last_epoch':round(time.time(),2),
@@ -166,22 +181,11 @@ def main(config):
 	# send_message_slack(slack_hook,{'text':'sent'})
 
 
-def send_last_status(last_status, symbol, interval):
-	try:
-		last_epoch = float(last_status[interval])
-	except:
-		return True
 
-	silence_time = 600 # 10 minutes
-	if time.time() - last_epoch > silence_time:
-		return True
-	else:
-		return False
-
-def market_status(macd, rsi, epsilon):
-	macd_high = 1; macd_low = -1
-	rsi_high = 65; rsi_low = 35
-	eps_high = 2; eps_low = -2 
+def market_status(macd, rsi, epsilon, macd_range = [-1,1], rsi_range = [35,65], eps_range = [-2,2]):
+	macd_high = macd_range[1]; macd_low = macd_range[0]
+	rsi_high = rsi_range[1]; rsi_low = rsi_range[0]
+	eps_high = eps_range[1]; eps_low = eps_range[0] 
 
 	if macd >= macd_high:
 		if rsi >= rsi_high:
@@ -224,7 +228,7 @@ def market_status(macd, rsi, epsilon):
 			if epsilon >= eps_high:
 				return 'Toss up', 'lnh','No Action Recommended'
 			elif epsilon <= eps_low:
-				return 'recovering from crash', 'lnl', 'Hold/Buy'
+				return 'Recovering from crash', 'lnl', 'Hold/Buy'
 			else:
 				return 'Toss up', 'lnn','No Action Recommended'
 	else:
@@ -239,9 +243,9 @@ def market_status(macd, rsi, epsilon):
 			if epsilon >= eps_high:
 				return 'Toss up', 'nlh','No Action Recommended'
 			elif epsilon <= eps_low:
-				return 'early stages of a crash; reaching bottom', 'nll', 'Hold/Buy'
+				return 'Middle stages of a crash; reaching bottom', 'nll', 'Hold/Buy'
 			else:
-				return 'early stages of a crash', 'nln', 'Hold/Buy'
+				return 'Early stages of a crash', 'nln', 'Hold/Buy'
 		else:
 			if epsilon >= eps_high:
 				return 'Kinda in a bubble. Could pop, but possibly not imminent', 'nnh', 'Hold'
@@ -267,4 +271,5 @@ if __name__ == '__main__':
 		config['interval'] = FLAGS.interval
 	config['overbought_threshold'] = FLAGS.overbought
 	config['oversold_threshold'] = FLAGS.oversold
+	config['which_values'] = FLAGS.which_values
 	main(config)

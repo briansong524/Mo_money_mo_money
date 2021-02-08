@@ -114,9 +114,10 @@ def simple_lr(x,y):
     
     return lr, lr.coef_[0], lr.intercept_
 
-def calculate_epsilon(df, last_epsilon_only = False):
+def calculate_epsilon(df, last_val_only = False):
 	df['Midpoint'] = df[['Open','Close']].mean(axis = 1)
 	df['pos'] = df['Datetime'].map(lambda x: (x - df['Datetime'].iloc[0]).total_seconds() / 60 / 60) # for linear regression
+	df = df[df['Midpoint'].notna()].copy()
 
 	## obtain epsilon 
 	x = df['pos']
@@ -136,7 +137,7 @@ def calculate_epsilon(df, last_epsilon_only = False):
 	pred = lr3.predict(df['pos'].values.reshape(-1,1))
 	df['epsilon'] = df['Midpoint'] - pred
 	epsilon = df['epsilon'].iloc[-1]
-	if last_epsilon_only:
+	if last_val_only:
 		return epsilon
 	else:
 		return df
@@ -153,7 +154,7 @@ def calculate_rsi(val, prevU = 0, prevD = 0, n = 9):
 	rsi = 100.0 - 100.0 / (1 + rs)
 	return rsi, avgU, avgD
 
-def mult_rsi(vals, n_int = 9, last_rsi_only = False):
+def mult_rsi(vals, n_int = 9, last_val_only = False):
 	# given a sequential list of values, obtain the last [len(vals)-n_int] rsi 
 	# vals expected to be a numpy array
 
@@ -171,7 +172,7 @@ def mult_rsi(vals, n_int = 9, last_rsi_only = False):
 	for i in range(n_int, len(vals)):
 		rsi_, prevU, prevD = calculate_rsi(vals[i], prevU, prevD, n_int)
 		rsi_list.append(rsi_)
-	if last_rsi_only:
+	if last_val_only:
 		return rsi_
 	else:
 		return rsi_list
@@ -188,7 +189,8 @@ def calculate_macd(val, last_long_ema, last_short_ema,
     macd = short_ema - long_ema
     return macd, long_ema, short_ema
 
-def mult_macd(vals, long_int = 26, short_int = 12, signal_int = 9, smoothing = 2):
+def mult_macd(vals, long_int = 26, short_int = 12, 
+			  signal_int = 9, smoothing = 2, last_val_only  = False):
 	# given a sequential list of values, obtain the last
 	# [len(vals) - long_int] macd and 
 	# [len(vals) - long_int - signal_int] signals
@@ -213,8 +215,10 @@ def mult_macd(vals, long_int = 26, short_int = 12, signal_int = 9, smoothing = 2
 	for i in range(signal_int, len(vals)):
 		ema = calculate_ema(vals[i], ema, signal_int, smoothing)
 		signal_list.append(ema)
-
-	return macd_list, signal_list
+	if last_val_only:
+		return macd_list[-1], signal_list[-1]
+	else:
+		return macd_list, signal_list
 	
 def categorize_trend(x, high_val, low_val, as_color = False):
     if x >= high_val:
