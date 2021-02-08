@@ -160,10 +160,10 @@ def main(config):
 					text += 'Note: ' + str(message)
 					myobj = {"text":text}
 					send_message_slack(slack_hook, myobj)
-					slack_gate[symbol]['last_epoch'] = round(time.time(),2)
+					last_epoch = round(time.time(),2)
 
 			slack_gate[symbol] = {
-									'last_epoch':round(time.time(),2),
+									'last_epoch':last_epoch,
 									'last_rsi':round(rsi,2)
 							     }
 
