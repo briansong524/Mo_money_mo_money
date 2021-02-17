@@ -6,11 +6,17 @@ as the overall market tracker, but runs through different levels of granularity
 to try to be more precise.
 
 '''
-
 '''
 # Overall Market Tracker
 
 Tracks the overall market health, and makes notes accordingly
+
+Indicators Used:
+- RSI
+- MACD
+- Epsilon
+  - This one is self defined. The distance between true price and 
+    predicted price from linear regression
 
 Notes: 
 -These will note the general mid-long term market status, so
@@ -36,7 +42,10 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 from utils import calculate_rsi, send_message_slack
-from utils import calculate_ema, calculate_macd, simple_lr
+from utils import calculate_ema, calculate_macd
+from utils import mult_rsi, mult_macd
+from utils import calculate_epsilon, simple_lr
+from utils import midpoint_imputation
 
 # from utils import global_logger_init, global_logger_cleanup
 
@@ -52,14 +61,23 @@ parser.add_argument(
 	'--config', type=str, default='/home/minx/Documents/config.conf',
 	help = 'Config file for all configuration info')
 parser.add_argument(
+	'--symbols', type=str, default='symbols.txt',
+	help = 'Directory of text file containing all symbols separated by new line')
+parser.add_argument(
 	'--rsi_bars', type=int, default=14,
-	help = 'number of bars used to calculate rsi')
+	help = 'Number of bars used to calculate rsi')
 parser.add_argument(
 	'--interval', type=str, default='30m',
-	help = 'size of bar')
-
-
-
+	help = 'Size of bar')
+parser.add_argument(
+	'--which_values', type=str, default='Close',
+	help = 'Close or Midpoint values to use')
+parser.add_argument(
+	'--overbought', type=int, default=70,
+	help = 'Threshold for overbought rsi')
+parser.add_argument(
+	'--oversold', type=int, default=30,
+	help = 'Threshold for oversold rsi')
 
 def main(config):
 	
@@ -68,133 +86,135 @@ def main(config):
 	# initialize
 	# logger,handler = global_logger_init('/home/minx/Documents/logs/')
 	slack_hook = config['overall_market_webhook']
+	symbols = config['symbols']
 	n = int(config['rsi_bars'])
 	interval = str(config['interval'])
-	symbols = str(config['ti_symbols']).split(',')
+	which_values = str(config['which_values'])
+	try:
+		overbought = int(config['overbought_threshold'])
+	except:
+		overbought = 70
+	try:
+		oversold = int(config['oversold_threshold'])
+	except:
+		oversold = 30
+	send_message = False # swaps to True if any of the symbols were to be sent
+	text = ''
+	status_dict = {'h':'high', 'n':'normal','l':'low'}
 
 	# make slack gate file to repress redundant messages
-
 	new_instance = False
-	rsi_dict = {}
-	if os.path.exists('ti_status.json'):
-		with open('ti_status.json','r') as f:
-			last_status = f.read()
+	if os.path.exists('ti_last_status.json'):
+		with open('ti_last_status.json','r') as f:
+			slack_gate = json.load(f)
 	else:
-		last_status = ''
+		slack_gate = {}
 		new_instance = True
-	
-	# pull yfinance data
 
+	# pull yfinance data
 	tickers = ' '.join(symbols)
 	start_date = str((datetime.now() - timedelta(days=59)).date())
-	data_raw = yf.download(tickers = tickers, 
-		start = start_date, interval = interval, group_by = 'ticker')
-	# dropping incomplete data
-	data_raw = data_raw.dropna() 
-	for symbol in symbols:
-		data_raw = data_raw[data_raw[(symbol,'Volume')] != 0] # this maybe overkill
-
-
-	# # dropping incomplete data
-	# data = data.dropna() 
-	# latest_dt = data.index[-1] # index contains datetime for multi symbols
-	# latest_dt = latest_dt.astimezone(pytz.timezone('America/Los_Angeles'))
-
+	# data = ticker.history(interval = interval, start = start_date).reset_index()
+	data = yf.download(tickers = tickers, start = start_date, interval = interval,
+						group_by = 'ticker', prepost = True)
 	# calculate technical indicators
+	try:
+		for symbol in symbols:
+			df = data[symbol].reset_index().copy()
 
-	for symbol in symbols:
-		try:
-			data = data_raw[symbol].copy().reset_index()
-			data['Midpoint'] = data[['Open','Close']].mean(axis = 1)
-			data['pos'] = data['Datetime'].map(lambda x: (x - data['Datetime'].iloc[0]).total_seconds() / 60 / 60) # for linear regression
+			# just do midpoint as default option 
+			if which_values == 'Close':
+				rows = df['Close'].values
+			else:
+				rows = df[['Open','Close']].mean(axis = 1).values # midpoint 
 
-			x = data['pos']
-			lr1, m, b = simple_lr(np.array(x).reshape(-1, 1), data['Midpoint'])
-			pred = lr1.predict(np.array(x).reshape(-1,1)) 
-			data['prop_dist_1'] = (pred - data['Midpoint']).abs() / pred
-			cutoff = np.percentile(data['prop_dist_1'], 65)
-			cutoff2 = np.percentile(data['prop_dist_1'], 50)
-			df = data[data['prop_dist_1'] < cutoff].copy()
-			x = np.array(df['pos']).reshape(-1,1)
-			lr2, m, b = simple_lr(x, df['Midpoint'])
-			pred = lr2.predict(np.array(x).reshape(-1,1))
-			df['prop_dist_2'] = (pred - df['Midpoint']).abs() / df['Midpoint']
-			df2 = df[df['prop_dist_2'] < cutoff2].copy()
-			x = np.array(df2['pos']).reshape(-1,1)
-			lr3, m, b = simple_lr(x, df2['Midpoint'])
-			pred = lr3.predict(data['pos'].values.reshape(-1,1))
-			data['epsilon'] = data['Midpoint'] - pred
-			epsilon = data['epsilon'].iloc[-1]
+			rows = midpoint_imputation(rows)
+			rsi = mult_rsi(rows, n_int = 14, last_val_only = True)
+			rsi = 50
+			macd, _ = mult_macd(rows)
+			df = calculate_epsilon(df)
+			epsilon = df['epsilon'].values[-1]
+			macd_range = np.percentile(macd, [20,90])
+			eps_range = np.percentile(df['epsilon'].values, [10,90])
 
-			
-			rsi_list = []
-			n = 14
-			rows = data['Close'].values
-			# print(rows[-5:])
-			rows = rows[1:] - rows[:-1] # make prices to deltas
+			message, status, recommendation = market_status(macd[-1], rsi, epsilon,
+															macd_range = macd_range,
+															eps_range = eps_range)
+			try:
+				last_status = slack_gate[symbol]['last_status']
+			except:
+				last_status = ''
 
-			# initial calculation
-			vals = rows[:n]
-			prevU = np.sum(vals * (vals > 0).astype(int)) / n
-			prevD = -1 * np.sum(vals * (vals < 0).astype(int)) / n
+			try:
+				last_epoch = slack_gate[symbol]['last_epoch']
+				bool1 = epoch_check_slack_gate(last_epoch)
+			except:
+				last_epoch = 0.0
+				bool1 = True
+				
+			if last_status == '':
+				send_message = True
+				if symbol == symbols[0]:
+					text = "New Instance\n"
+					text += 'Initial quickview of all monitored symbols:\n'
+				text += symbol + ': ' + status_valuation(status) + '\n'
 
-			for i in range(n, len(rows)):
-			    rsi, prevU, prevD = calculate_rsi(rows[i], prevU, prevD, n)
+			else:
+				if (last_status != status) & bool1:
+					send_message = True
+					text = '(' + status_valuation(slack_gate[symbol]['last_status']) + ' -> ' 
+					text += status_valuation(status) + ') Trend for ' + symbol + '\n'
+					text += 'Change in status:\n'
+					text += 'MACD: ' + str(status_dict[last_status[0]]) + ' -> ' + str(status_dict[status[0]]) + '\n'
+					text += 'RSI: ' + str(status_dict[last_status[1]]) + ' -> ' + str(status_dict[status[1]]) 
+					text += ' (' + str(slack_gate[symbol]['last_rsi']) + ' -> ' + str(round(rsi,2)) + ')\n'
+					text += 'Epsilon: ' + str(status_dict[last_status[2]]) + ' -> ' + str(status_dict[status[2]]) + '\n'
+					text += 'Note: ' + str(message)
+					last_epoch = time.time()
+			slack_gate[symbol] = {
+									'last_epoch':last_epoch,
+									'last_rsi':round(rsi,2),
+									'last_status':status
+							     }
 
-			# initialize 
-			vals = data['Close'].values
-			smoothing = 2
-			long_int = 26; short_int = 12 # accepted norm of ema lengths for macd
-			long_ema = np.mean(vals[:long_int]) # simple average of first 26 values
-			short_ema = np.mean(vals[(long_int - short_int):long_int]) # simple average of last 12 values from 26th index
-
-
-			# measure macd
-			for i in range(long_int, len(vals)):
-			    macd, long_ema, short_ema = calculate_macd(vals[i], long_ema, short_ema, long_int, short_int, smoothing)
-
-
-			message, status, recommendation = market_status(macd, rsi, epsilon)
-			print(last_status, status)
-
-			if last_status != status:
-
-				text = 'Trend for ' + symbol + '\n'
-				text += 'Change in status:' + '\n'
-				text += message
-				myobj = {"text":text}
-				send_message_slack(slack_hook, myobj)
-
-		except Exception as e:
-			type_, value_, traceback_ = sys.exc_info()
-			tb = traceback.format_exception(type_, value_, traceback_)
-			tb = '\n' + ' '.join(tb)
-			# logger.error('\n' + ' '.join(tb))
-			# logger.error('exception occured %s',str(e))
-			myobj = {"text":'something happened with ' + str(symbol) + ": " + str(tb)}
+		## send message to slack
+		if send_message:
+			myobj = {"text":text} 
 			send_message_slack(slack_hook, myobj)
 
-	with open('overall_market_last_status.txt','w') as f:
-		f.write(status)
+		## save slack gate
+		with open('ti_last_status.json','w') as f:
+			json.dump(slack_gate, f)
+	except Exception as e:
+		type_, value_, traceback_ = sys.exc_info()
+		tb = traceback.format_exception(type_, value_, traceback_)
+		tb = '\n' + ' '.join(tb)
+		# logger.error('\n' + ' '.join(tb))
+		# logger.error('exception occured %s',str(e))
+		myobj = {"text":'something happened with ' + str(symbol) + ": " + str(tb)}
+		send_message_slack(slack_hook, myobj)
+
+
+	# with open('overall_market_last_status.txt','w') as f:
+	# 	f.write(status)
 	# send_message_slack(slack_hook,{'text':'sent'})
 
-
-def send_last_status(last_status, symbol, interval):
-	try:
-		last_epoch = float(last_status[interval])
-	except:
-		return True
-
-	silence_time = 600 # 10 minutes
-	if time.time() - last_epoch > silence_time:
-		return True
+def status_valuation(status):
+	if status in ['hnh','nhh']:
+		return 'Overvalued'
+	elif status in ['hhl','hhn','lnl','nll']:
+		return 'Undervalued'
+	elif status == 'lll':
+		return 'Very undervalued'
+	elif status == 'hhh':
+		return 'Very overvalued'
 	else:
-		return False
+		return 'Normal'
 
-def market_status(macd, rsi, epsilon):
-	macd_high = 1; macd_low = -1
-	rsi_high = 65; rsi_low = 35
-	eps_high = 2; eps_low = -2 
+def market_status(macd, rsi, epsilon, macd_range = [-1,1], rsi_range = [35,65], eps_range = [-2,2]):
+	macd_high = macd_range[1]; macd_low = macd_range[0]
+	rsi_high = rsi_range[1]; rsi_low = rsi_range[0]
+	eps_high = eps_range[1]; eps_low = eps_range[0] 
 
 	if macd >= macd_high:
 		if rsi >= rsi_high:
@@ -206,62 +226,62 @@ def market_status(macd, rsi, epsilon):
 				return 'Quick crash, should go back up', 'hhn', 'Hold/Buy'
 		elif rsi <= rsi_low:
 			if epsilon >= eps_high:
-				return 'Toss up', 'hlh','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'hlh','No Action Recommended'
 			elif epsilon <= eps_low:
-				return 'Toss up', 'hll','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'hll','No Action Recommended'
 			else:
-				return 'Toss up', 'hln','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'hln','No Action Recommended'
 		else:
 			if epsilon >= eps_high:
 				return 'Possible early stages of crashing from a bubble burst. Keep an eye for potential burst', 'hnh', 'Hold/Sell'
 			elif epsilon <= eps_low:
-				return 'Toss up', 'hnl','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'hnl','No Action Recommended'
 			else:
-				return 'Toss up', 'hnn','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'hnn','No Action Recommended'
 	elif macd <= macd_low:
 		if rsi >= rsi_high:
 			if epsilon >= eps_high:
-				return 'Toss up', 'lhh','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'lhh','No Action Recommended'
 			elif epsilon <= eps_low:
-				return 'Toss up', 'lhl','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'lhl','No Action Recommended'
 			else:
-				return 'Toss up', 'lhn','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'lhn','No Action Recommended'
 		elif rsi <= rsi_low:
 			if epsilon >= eps_high:
-				return 'Toss up', 'llh','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'llh','No Action Recommended'
 			elif epsilon <= eps_low:
 				return 'Possible lowest point of crash. Look to buy', 'lll', 'Buy'
 			else:
-				return 'Toss up', 'lln','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'lln','No Action Recommended'
 		else:
 			if epsilon >= eps_high:
-				return 'Toss up', 'lnh','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'lnh','No Action Recommended'
 			elif epsilon <= eps_low:
-				return 'recovering from crash', 'lnl', 'Hold/Buy'
+				return 'Recovering from crash', 'lnl', 'Hold/Buy'
 			else:
-				return 'Toss up', 'lnn','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'lnn','No Action Recommended'
 	else:
 		if rsi >= rsi_high:
 			if epsilon >= eps_high:
 				return 'Early signs of imminent crash, take care', 'nhh', 'Hold/Sell'
 			elif epsilon <= eps_low:
-				return 'Toss up', 'nhl','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'nhl','No Action Recommended'
 			else:
-				return 'Toss up', 'nhn','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'nhn','No Action Recommended'
 		elif rsi <= rsi_low:
 			if epsilon >= eps_high:
-				return 'Toss up', 'nlh','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'nlh','No Action Recommended'
 			elif epsilon <= eps_low:
-				return 'early stages of a crash; reaching bottom', 'nll', 'Hold/Buy'
+				return 'Middle stages of a crash; reaching bottom', 'nll', 'Hold/Buy'
 			else:
-				return 'early stages of a crash', 'nln', 'Hold/Buy'
+				return 'Early stages of a crash', 'nln', 'Hold/Buy'
 		else:
 			if epsilon >= eps_high:
 				return 'Kinda in a bubble. Could pop, but possibly not imminent', 'nnh', 'Hold'
 			elif epsilon <= eps_low:
 				return 'Recovering market', 'nnl', 'Hold'
 			else:
-				return 'Toss up', 'nnn','No Action Recommended'
+				return 'Toss up (buy, sell, do what you want)', 'nnn','No Action Recommended'
 
 
 
@@ -274,8 +294,19 @@ if __name__ == '__main__':
 	FLAGS, unparsed = parser.parse_known_args()
 	with open(FLAGS.config,'r') as in_:
 		config = json.load(in_)
+
+	with open(FLAGS.symbols,'r') as in_:
+		lines = in_.readlines()
+	lines = list(map(lambda x: x.replace('\n',''),lines))
+	config['symbols'] = lines
+
 	if FLAGS.rsi_bars != 14:
 		config['rsi_bars'] = FLAGS.rsi_bars
+
 	if FLAGS.interval != '30m':
 		config['interval'] = FLAGS.interval
+
+	config['overbought_threshold'] = FLAGS.overbought
+	config['oversold_threshold'] = FLAGS.oversold
+	config['which_values'] = FLAGS.which_values
 	main(config)

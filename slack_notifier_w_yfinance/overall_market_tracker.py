@@ -123,7 +123,7 @@ def main(config):
 			df = calculate_epsilon(df)
 			epsilon = df['epsilon'].values[-1]
 			macd_range = np.percentile(macd, [20,90])
-			eps_range = np.percentile(df['epsilon'].values, [30,70])
+			eps_range = np.percentile(df['epsilon'].values, [10,90])
 
 			message, status, recommendation = market_status(macd[-1], rsi, epsilon,
 															macd_range = macd_range,

@@ -1,10 +1,7 @@
-todo:
+ todo:
 
-- add time gate to overall_market_tracker.py
-- add text file for which symbols to track
-- clean up overall_market_tracker.py
-- clean up technical_indicator_notifier.py
 - add a readme
 - move repo to private
 - clean up cron logic
 - add loggers
+- maybe calculate the estimate amount of growth to go from undervalued to normal?
