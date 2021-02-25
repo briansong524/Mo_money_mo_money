@@ -1,0 +1,1 @@
+{"AAPL": {"15m": {"last_rsi": 47.66, "max_rsi": 50.0, "min_rsi": 50.0, "status": "Normal", "last_epoch": 0.0}}, "TWTR": {"15m": {"last_rsi": 50.52, "max_rsi": 50.0, "min_rsi": 50.0, "status": "Normal", "last_epoch": 0.0}}, "IBM": {"15m": {"last_rsi": 48.47, "max_rsi": 50.0, "min_rsi": 50.0, "status": "Normal", "last_epoch": 0.0}}}

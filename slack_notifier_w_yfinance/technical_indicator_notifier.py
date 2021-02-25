@@ -130,7 +130,7 @@ def main(config):
 
 			rows = midpoint_imputation(rows)
 			rsi = mult_rsi(rows, n_int = 14, last_val_only = True)
-			rsi = 50
+			# rsi = 50
 			macd, _ = mult_macd(rows)
 			df = calculate_epsilon(df)
 			epsilon = df['epsilon'].values[-1]

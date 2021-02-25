@@ -144,7 +144,7 @@ def main(config):
 				rows = df[['Open','Close']].mean(axis = 1).values # midpoint 
 
 			rows = midpoint_imputation(rows) # fill in missing values
-			rsi = mult_rsi(rows, n_int = n, last_rsi_only = True)
+			rsi = mult_rsi(rows, n_int = n, last_val_only = True)
 			print('RSI: ' + str(rsi))
 			
 			# send slack message based on rsi
