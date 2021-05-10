@@ -22,11 +22,20 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
             'color': colors['text']
         }
     ),
-    html.Label("Add Symbols",
-        style={
-            'color':colors['text']        
-        }),
-    dcc.Input(value='', type='text')
+    html.Div(children=[
+        html.Label("Add Symbols: ",
+            style={
+                'color':colors['text']        
+            }),
+        dcc.Input(value='', type='text')
+    ]),
+    html.Div(children=[
+        html.Label("Remove Symbols: ",
+            style={
+                'color':colors['text']        
+            }),
+        dcc.Input(value='', type='text')
+    ])
 ])
 
 if __name__ == '__main__':
