@@ -20,6 +20,8 @@ test = {
         'symbols':['AAPL','TSLA'],
         'bar_size':'15'
         }
+
+## Page Layout
 app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
     html.H1(
         children='RSI Notifier Configuration',
@@ -55,42 +57,42 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
     html.Div(id='output-state')
 ])
 
-@app.callback(
-    Output('output-state','children'),
-    Input('submit-button-state','children'),
-    State('add-symbol','children'),
-    State('remove-symbol','children'),
-    State('bar-size','children')
-    )
-def update_config(button, add_symbols, remove_symbols, bar_size):
-    print_output = ''
+# @app.callback(
+#     Output('output-state','children'),
+#     Input('submit-button-state','children'),
+#     State('add-symbol','children'),
+#     State('remove-symbol','children'),
+#     State('bar-size','children')
+#     )
+# def update_config(button, add_symbols, remove_symbols, bar_size):
+#     print_output = ''
 
-    if add_symbols != '':
-        #maybe add space remover
-        symbols = add_symbols.split(',')
-        temp = test['symbols']
-        temp.extend(symbols)
-        test['symbols'] = temp
-        print_output += 'added ' + add_symbols + ' to list\n'
-    if remove_symbols != '':
-        symbols = remove_symbols.split(',')
-        temp = test['symbols']
-        for symbol in symbols:
-            try:
-                temp.remove(symbol)
-            except:
-                pass
-        print_output += 'removed ' + remove_symbols + ' from list\n'
-    if bar_size != '':
-        try:
-            old_bar_size = test['bar_size']
-            bar_size = int(bar_size)
-            test['bar_size'] = bar_size
-        except Exception as e:
-            print('bar_size input incorrect: ' + str(e))
-        print_output += ' changed bar size from ' + str(old_bar_size) \
-                        + ' to ' + str(bar_size)
-    return print_output
+#     if add_symbols != '':
+#         #maybe add space remover
+#         symbols = add_symbols.split(',')
+#         temp = test['symbols']
+#         temp.extend(symbols)
+#         test['symbols'] = temp
+#         print_output += 'added ' + add_symbols + ' to list\n'
+#     if remove_symbols != '':
+#         symbols = remove_symbols.split(',')
+#         temp = test['symbols']
+#         for symbol in symbols:
+#             try:
+#                 temp.remove(symbol)
+#             except:
+#                 pass
+#         print_output += 'removed ' + remove_symbols + ' from list\n'
+#     if bar_size != '':
+#         try:
+#             old_bar_size = test['bar_size']
+#             bar_size = int(bar_size)
+#             test['bar_size'] = bar_size
+#         except Exception as e:
+#             print('bar_size input incorrect: ' + str(e))
+#         print_output += ' changed bar size from ' + str(old_bar_size) \
+#                         + ' to ' + str(bar_size)
+#     return print_output
 
 if __name__ == '__main__':
     app.run_server(debug=True)
