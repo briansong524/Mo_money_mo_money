@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>RSI Notifier Configuration</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Raleway'>
+    <link rel="stylesheet" href="{{url_for('static',filename='style.css') }}">
+     <style>
+    html,body,h1,h2,h3,h4,h5,h6 {font-family: "Raleway", sans-serif}
+    body {margin-left:20%; margin-right:20%;padding:0}
+    </style>
+</head>
+
+<body class='container' style="background-color:#FFFFFF">
+    <div style='padding: 10px; text-align: center'>
+        <h1 style = 'margin:0;'>RSI Notifier Configuration</h1>      
+        <p style = 'top-margin:15px'>Make changes to the configuration as see fit</p>
+    </div>
+
+
+    <div class='row'>
+        <div style='margin-left: 15px; margin-right: 15px; '>
+            {% for para in variable.update_text %}
+            <p style='margin-top: 1px; margin-bottom: 1px'>{{para}}</p>
+            {% endfor %}
+        </div>
+
+        <div class='column w3-card-4 w3-margin' style='background-color:#F5F5F5; padding: 10px; width:98%'>
+            <form method='POST' action="/">
+                <h3> Update Configurations </h3>
+                <p>Add Symbols (separate multiple with commas): <input type='text' name='add_symbols' placeholder='ABC,DEF,GHI'></p>
+                <p>Remove Symbols (separate multiple with commas): <input type='text' name='remove_symbols' placeholder='ABC,DEF,GHI'></p>
+                <p>New Bar Size (minutes) [1,2,5,15,30]: <input type='text' name='bar_size' placeholder=15></p>
+                <p>New Overbought Threshold (RSI): <input type='text' name='overbought' placeholder=70></p>
+                <p>New Oversold Threshold (RSI): <input type='text' name='oversold' placeholder=30></p>
+                <p><input type='submit' value='Update'/></p>
+            </form>
+        </div>    
+
+        <div class='column w3-card-4 w3-margin' style='background-color:#F5F5F5; padding: 10px; width:98%'>
+            <h3> Current Configurations </h3>
+            <p> Bar Size: {{variable.bar_size}}</p>
+            <p> Overbought Threshold (RSI): {{variable.overbought_threshold}}</p>
+            <p> Oversold Threshold (RSI): {{variable.oversold_threshold}}</p>
+        </div>
+    </div>
+
+    <div class='column w3-card-4 w3-margin' style='background-color:#F5F5F5; padding-left: 10px; padding-right: 10px; width:98%'>
+        <h3> Currently Active Symbols </h3>
+        {% for para in variable.symbols %}
+        <p style='margin-top: 2px; margin-bottom: 2px'>{{para}}</p>
+        <!-- <p> {{variable.symbols}} </p> -->
+        {% endfor %}
+    </div>
+
+</body>
+
+</html>
