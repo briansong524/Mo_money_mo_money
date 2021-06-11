@@ -161,6 +161,7 @@ if __name__ == '__main__':
 
     with open('super_secure.txt','r') as in_:
         app.secret_key = in_.read()
+    
     if not os.path.exists('config.conf'):
         # just for testing - still needs webhook and otherwise
         config_ = {
