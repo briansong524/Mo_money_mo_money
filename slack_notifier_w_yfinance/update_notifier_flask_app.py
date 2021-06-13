@@ -121,7 +121,7 @@ def update_config(add_symbols, remove_symbols, bar_size, overbought, oversold):
             print_output += 'changed bar size from ' + str(old_bar_size) \
                             + ' to ' + str(bar_size) + '\n'
         except Exception as e:
-            # print('bar_size input incorrect: ' + str(e))
+            print('bar_size input incorrect: ' + str(e))
             print_output += 'New bar size input seems incorrect ("' \
                             + str(bar_size) + '"). Did not update.\n'
     if overbought not in [None,'']:
@@ -133,6 +133,7 @@ def update_config(add_symbols, remove_symbols, bar_size, overbought, oversold):
                                 + str(old_bar_size) + ' to ' \
                                 + str(bar_size) + '\n'
         except Exception as e:
+            print(e)
             print_output += 'New overbought threshold input seems incorrect ("' \
                             + str(overbought) + '"). Did not update.\n'
     if oversold not in [None,'']:
@@ -143,6 +144,7 @@ def update_config(add_symbols, remove_symbols, bar_size, overbought, oversold):
             print_output += ' changed oversold threshold from ' \
                                 + str(old_bar_size) + ' to ' + str(bar_size)
         except Exception as e:
+            print(e)
             print_output += 'New oversold threshold input seems incorrect ("' \
                             + str(oversold) + '"). Did not update.'    
     with open('config.conf','w') as out_:
@@ -165,7 +167,7 @@ if __name__ == '__main__':
     if not os.path.exists('config.conf'):
         # just for testing - still needs webhook and otherwise
         config_ = {
-                  'bar_size':'15',
+                  'interval':'15',
                   'overbought_threshold':'70',
                   'oversold_threshold':'30',
                   'symbols':'AAPL,AMZN,GME,QQQ,SPY,TSLA,ZM'
