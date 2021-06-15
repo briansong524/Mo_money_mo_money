@@ -29,7 +29,7 @@ parser.add_argument(
 
 parser.add_argument(
     '--file_dir', type=str, default= '',
-    help = 'Where the config file is located.')
+    help = 'Where the config file and others are located.')
 
 ################### logger config ###################
 global handler, logger, console_handler
@@ -115,13 +115,13 @@ def update_config(add_symbols, remove_symbols, bar_size, overbought, oversold):
         print_output += 'removed ' + remove_symbols + ' from list\n'
     if bar_size not in [None,'']:
         try:
-            old_bar_size = config_['bar_size']
+            old_bar_size = config_['interval']
             bar_size = int(bar_size)
-            config_['bar_size'] = str(bar_size)
+            config_['interval'] = str(bar_size) + 'm'
             print_output += 'changed bar size from ' + str(old_bar_size) \
-                            + ' to ' + str(bar_size) + '\n'
+                            + ' to ' + str(bar_size) + 'm\n'
         except Exception as e:
-            print('bar_size input incorrect: ' + str(e))
+            print('bar_size inputi ncorrect: ' + str(e))
             print_output += 'New bar size input seems incorrect ("' \
                             + str(bar_size) + '"). Did not update.\n'
     if overbought not in [None,'']:
@@ -147,35 +147,23 @@ def update_config(add_symbols, remove_symbols, bar_size, overbought, oversold):
             print(e)
             print_output += 'New oversold threshold input seems incorrect ("' \
                             + str(oversold) + '"). Did not update.'    
-    with open('config.conf','w') as out_:
+    with open(FLAGS.file_dir + '/config.conf','w') as out_:
+        print(FLAGS.file_dir)
         json.dump(config_, out_)
     return print_output
 
 if __name__ == '__main__':
-    global work_dir, config_
+    global work_dir, config_, FLAGS
     FLAGS, unparsed = parser.parse_known_args()
 
     main_dir = os.path.dirname(os.path.realpath(__file__))
-    if FLAGS.file_dir == '':
-        os.chdir(main_dir)
-    else:
-        os.chdir(FLAGS.file_dir)
 
-    with open('super_secure.txt','r') as in_:
+
+    with open(FLAGS.file_dir + '/super_secure.txt','r') as in_:
         app.secret_key = in_.read()
     
-    if not os.path.exists('config.conf'):
-        # just for testing - still needs webhook and otherwise
-        config_ = {
-                  'interval':'15',
-                  'overbought_threshold':'70',
-                  'oversold_threshold':'30',
-                  'symbols':'AAPL,AMZN,GME,QQQ,SPY,TSLA,ZM'
-                  }
-        with open('config.conf','w') as out_:
-            json.dump(config_,out_)
-    else:
-        with open('config.conf','r') as in_:
-            config_ = json.load(in_)
+
+    with open(FLAGS.file_dir + '/config.conf','r') as in_:
+        config_ = json.load(in_)
 
     app.run(debug=True, port=FLAGS.port, host='0.0.0.0')
