@@ -60,7 +60,7 @@ def run_heart_beat_check():
 def update_page():
     # Update config file via POST request
 
-    if session.get('logged_in'):
+    if True: #session.get('logged_in'):
         # print(request.args)
         # print(request.form)
         add_symbols = request.form.get('add_symbols')
@@ -81,8 +81,8 @@ def update_page():
         update_text = update_text.split('\n')
         config_html['update_text'] = update_text
         return render_template('update_page.html', variable=config_html)
-    else:
-        return render_template('login.html')
+    # else:
+    #     return render_template('login.html')
 
 @app.route('/login', methods=['POST'])
 def do_admin_login():
