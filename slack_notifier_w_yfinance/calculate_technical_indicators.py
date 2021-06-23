@@ -248,7 +248,7 @@ if __name__ == '__main__':
 		config['rsi_bars'] = FLAGS.rsi_bars
 	if FLAGS.period != '':
 		config['period'] = FLAGS.period
-	if FLAGS.interval != '':
-		config['interval'] = FLAGS.interval
+	# if FLAGS.interval != '':
+		# config['interval'] = FLAGS.interval
 	config['which_values'] = FLAGS.which_values
 	main(config)
