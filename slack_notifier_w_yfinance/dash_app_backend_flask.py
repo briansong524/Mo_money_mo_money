@@ -61,13 +61,15 @@ def data_load():
     global data_global
     # load dataset via POST request
     try:
-        # print(request.args)
+        print(request.args)
         # print(request.form)
         symbol = request.args.get('symbol')
         bar_size = request.args.get('bar_size')
         try:
             print(data_global['Datetime'][-1])
             diff = datetime.now().timestamp() - data_global['Datetime'][-1]/1000
+            print('# seconds since last download: ' + str(diff))
+            diff = 1e7 #for testing
         except Exception as e:
             print('Exception in checking time: ' + str(e))
             diff = 1e7
@@ -128,6 +130,16 @@ def data_expand(df):
     df['Upper'] = df[['Open','Close']].max(axis = 1)
     df['Lower'] = df[['Open','Close']].min(axis = 1)
     df['Midpoint'] = df[['Open','Close']].mean(axis = 1)
+    
+    # fix anomalous high/low prices
+    const = 5 # range of open/close
+    diff = df['Open'].sub(df['Close']).abs()
+    ceil = df['Upper'].add(const*diff)
+    flr = df['Lower'].sub(const*diff)
+    df['High'] = pd.concat([df['High'],ceil], axis = 1).min(axis = 1)
+    df['Low'] = pd.concat([df['Low'],flr], axis = 1).max(axis = 1)
+
+    
     vals = df['Datetime']
     v1 = vals.iloc[1:]
     v2 = vals.iloc[:-1]
