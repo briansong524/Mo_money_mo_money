@@ -103,16 +103,17 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                          options=[{'label':i,'value':i} for i in ['Line','Bar']],
                          value='Bar')
         ]),
-        html.Div(children=[
-            html.Label("Include Extended Hours? ",
-                style={
-                       'color':colors['text']        
-                       }
-            ),
-            dcc.RadioItems(id='prepost', 
-                         options=[{'label':i,'value':i} for i in ['Yes','No']],
-                         value='Yes')
-        ]),
+        # commenting out extended hours filter until i fix it
+        # html.Div(children=[
+        #     html.Label("Include Extended Hours? ",
+        #         style={
+        #                'color':colors['text']        
+        #                }
+        #     ),
+        #     dcc.RadioItems(id='prepost', 
+        #                  options=[{'label':i,'value':i} for i in ['Yes','No']],
+        #                  value='Yes')
+        # ]),
         html.Div(
             html.Button(id='submit-button-state', n_clicks=0, children='Submit',
                 style={
@@ -138,10 +139,10 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
     State('symbol','value'),
     State('graph-style','value'),
     State('bar-size','value'),
-    State('timezone','value'),
-    State('prepost','value')
+    State('timezone','value')#,
+    # State('prepost','value')
     )
-def market_graph(button, symbol, graph_style, bar_size, timezone, prepost):
+def market_graph(button, symbol, graph_style, bar_size, timezone):#, prepost):
     timezone = int(timezone)
     adjust_hours = timedelta(hours = timezone)
     # send data info
@@ -199,11 +200,11 @@ def market_graph(button, symbol, graph_style, bar_size, timezone, prepost):
         #                     marker_color='rgba(0,153,255,0.5)',
         #                     showlegend=False))
     hour_bounds = closed_hours[timezone]
-    if prepost == 'No':
-        if timezone == -10:
-            hour_bounds = [10.5,4.5]
-        else:
-            hour_bounds = [hour_bounds[0]-4,hour_bounds[1]+5.5]
+    # if prepost == 'No':
+    #     if timezone == -10:
+    #         hour_bounds = [10.5,4.5]
+    #     else:
+    #         hour_bounds = [hour_bounds[0]-4,hour_bounds[1]+5.5]
     fig1.update_xaxes(
         rangebreaks=[{'pattern':'day of week', 'bounds': [6,1]},
                      {'pattern': 'hour', 'bounds':hour_bounds}
